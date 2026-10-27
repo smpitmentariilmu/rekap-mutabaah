@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Rekap Mutabaah Siswa - Mentari Ilmu</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.tailwind = window.tailwind || {};
+        window.tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mi: {
+                            primary: '#124F47',
+                            dark: '#0D3F39',
+                            soft: '#E8F3F0',
+                            bg: '#F5F7F6',
+                            surface: '#FFFFFF',
+                            text1: '#19312E',
+                            text2: '#6B7C78',
+                            border: '#E5ECE9'
+                        },
+                        status: {
+                            berjamaah: '#d1fae5', 
+                            berjamaahTxt: '#065f46', 
+                            munfarid: '#fef3c7', 
+                            munfaridTxt: '#b45309', 
+                            haid: '#f3e8ff', 
+                            haidTxt: '#7e22ce', 
+                            tidak_shalat: '#ffe4e6', 
+                            tidak_shalatTxt: '#9f1239',
+                            belum_diisi: '#f1f5f9',
+                            belum_diisiTxt: '#64748b'
+                        },
+                        card: {
+                            blue: '#F0F7FF',
+                            green: '#F0FDF4',
+                            orange: '#FFF7ED',
+                            cyan: '#ECFEFF',
+                            rose: '#FFF1F2',
+                            slate: '#F8FAFC',
+                            purple: '#FAF5FF'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -4px rgba(18, 79, 71, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SheetJS (Excel Export) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- jsPDF (PDF Export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: theme('colors.mi.bg');
+            color: theme('colors.mi.text1');
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: theme('colors.mi.border'); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: theme('colors.mi.text2'); }
+
+        .tab-btn {
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            border-radius: 9999px;
+            color: #6B7C78;
+            border: 1px solid transparent;
+            background-color: transparent;
+        }
+        .tab-btn:hover { background-color: #F0F7F5 !important; color: #124F47 !important; border-color: #D7EAE5; }
+        .tab-btn.active {
+            background-color: #E8F3F0 !important;
+            color: #124F47 !important;
+            border: 1px solid #B8D9D2 !important;
+            box-shadow: 0 2px 6px rgba(18, 79, 71, 0.08), inset 0 0 0 1px rgba(18, 79, 71, 0.04);
+            font-weight: 600;
+        }
+        .tab-btn.active:hover { background-color: #DCEFEA !important; color: #0D3F39 !important; border-color: #A9D0C8 !important; }
+        
+        .table-row-hover { transition: background-color 0.2s ease; cursor: pointer; }
+        .table-row-hover:hover { background-color: theme('colors.mi.soft'); }
+
+        .loader {
+            border: 3px solid #E5ECE9; border-radius: 50%;
+            border-top: 3px solid #124F47; width: 32px; height: 32px;
+            animation: spin 1s linear infinite; display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .card-shadow { box-shadow: theme('boxShadow.soft'); }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .mobile-submenu { display: none; opacity: 0; transform: translateY(10px); transition: all 0.2s ease; }
+        .mobile-submenu.active { display: flex; opacity: 1; transform: translateY(0); }
+
+        .wa-preview-bg {
+            background-color: #efeae2;
+            background-image: url('https://www.transparenttextures.com/patterns/cubes.png'); 
+        }
+
+        .modal-overlay { background-color: rgba(25, 49, 46, 0.6); backdrop-filter: blur(4px); z-index: 0; }
+        
+        .badge { padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; display: inline-flex; justify-content: center; align-items: center; min-width: 65px;}
+        .badge-berjamaah { background-color: theme('colors.status.berjamaah'); color: theme('colors.status.berjamaahTxt'); border: 1px solid theme('colors.status.berjamaahTxt'); }
+        .badge-munfarid { background-color: theme('colors.status.munfarid'); color: theme('colors.status.munfaridTxt'); border: 1px solid theme('colors.status.munfaridTxt'); }
+        .badge-haid { background-color: theme('colors.status.haid'); color: theme('colors.status.haidTxt'); border: 1px solid theme('colors.status.haidTxt'); }
+        .badge-tidak { background-color: theme('colors.status.tidak_shalat'); color: theme('colors.status.tidak_shalatTxt'); border: 1px solid theme('colors.status.tidak_shalatTxt'); }
+        .badge-belum { background-color: theme('colors.status.belum_diisi'); color: theme('colors.status.belum_diisiTxt'); border: 1px dashed #cbd5e1;}
+
+        .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
+        .modal-leave { animation: fadeOut 0.2s ease-in forwards; }
+        .modal-content-enter { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        .wa-format-btn.active {
+            border-color: theme('colors.mi.primary');
+            background-color: theme('colors.mi.soft');
+            color: theme('colors.mi.primary');
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen pb-24 md:pb-12 lg:pb-0 relative">
+
+    <!-- HEADER -->
+    <div class="bg-mi-surface border-b border-mi-border sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+                
+                <div class="flex justify-between items-center w-full lg:w-auto">
+                    <!-- Title/Logo (Kiri) -->
+                    <div class="flex items-center gap-3 md:gap-4 shrink-0">
+                        <img src="https://mentariilmu.org/logo.png" alt="Logo Mentari Ilmu" class="h-10 md:h-12 w-auto object-contain">
+                        <div>
+                            <h1 class="text-lg md:text-xl lg:text-2xl font-bold text-mi-text1 leading-tight">Rekap Mutabaah Siswa</h1>
+                            <p class="text-[11px] md:text-xs lg:text-sm text-mi-text2 mt-0.5 md:mt-1 hidden md:block max-w-sm md:max-w-none">Pantau riwayat pengisian, evaluasi ibadah, analisa data, dan ekspor laporan.</p>
+                        </div>
+                    </div>
+
+                    <!-- Live Clock (Kanan khusus Mobile/Tablet) -->
+                    <div class="flex lg:hidden items-center gap-2 px-2.5 py-1.5 bg-gradient-to-r from-[#F0F7F5] to-white border border-[#D7EAE5] rounded-xl shadow-sm shrink-0 ml-2">
+                        <div class="flex flex-col text-right">
+                            <span class="live-time text-xs sm:text-sm font-black text-mi-primary leading-none tracking-tight font-mono">00:00:00</span>
+                            <span class="live-date text-[9px] sm:text-[10px] font-semibold text-mi-text2 mt-0.5">Memuat...</span>
+                        </div>
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white border border-[#E8F3F0] text-mi-primary flex items-center justify-center text-xs shadow-sm">
+                            <i class="fa-regular fa-clock animate-pulse"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-[11px] md:hidden text-mi-text2 mb-1 px-1">Pantau riwayat pengisian, evaluasi ibadah, analisa data, dan ekspor laporan.</p>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between lg:justify-end gap-3 md:gap-4">
+                    
+                    <!-- Live Clock (Desktop) -->
+                    <div class="hidden lg:flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-[#F0F7F5] to-white border border-[#D7EAE5] rounded-xl shadow-sm shrink-0 hover:shadow-md transition-shadow">
+                        <div class="w-9 h-9 rounded-xl bg-white border border-[#E8F3F0] text-mi-primary flex items-center justify-center text-sm shadow-sm">
+                            <i class="fa-regular fa-clock animate-pulse"></i>
+                        </div>
+                        <div class="flex flex-col min-w-[100px]">
+                            <span class="live-time text-base font-black text-mi-primary leading-none tracking-tight font-mono">00:00:00</span>
+                            <span class="live-date text-[11px] font-semibold text-mi-text2 mt-0.5">Memuat...</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="exportData('excel')" class="hidden lg:flex justify-center px-3 md:px-4 py-1.5 md:py-2 bg-[#E8F3F0] hover:bg-[#D9EEE8] text-[#18794E] rounded-xl text-xs md:text-sm font-medium transition-colors border border-[#C8E3DD] shadow-sm items-center gap-1.5 md:gap-2" title="Export Excel sesuai Tab yang aktif">
+                            <i class="fa-solid fa-file-excel"></i> <span>Excel</span>
+                        </button>
+                        <button onclick="exportData('pdf')" class="hidden lg:flex justify-center px-3 md:px-4 py-1.5 md:py-2 bg-[#FFF1F2] hover:bg-[#FFE4E6] text-[#BE123C] rounded-xl text-xs md:text-sm font-medium transition-colors border border-[#FFE4E6] shadow-sm items-center gap-1.5 md:gap-2" title="Export PDF sesuai Tab yang aktif">
+                            <i class="fa-solid fa-file-pdf"></i> <span>PDF</span>
+                        </button>
+                        <button id="btnRefreshData" onclick="refreshData()" class="hidden lg:flex justify-center px-3 md:px-4 py-1.5 md:py-2 bg-[#F5F7F6] hover:bg-[#E9EEEC] text-[#124F47] rounded-xl text-xs md:text-sm font-medium transition-colors border border-[#E5ECE9] shadow-sm items-center gap-1.5 md:gap-2" title="Muat ulang data dari spreadsheet"><i class="fa-solid fa-rotate"></i> <span>Refresh</span></button>
+                        <button onclick="openWhatsAppModal()" class="hidden lg:flex w-full sm:w-auto justify-center px-4 md:px-5 py-1.5 md:py-2 bg-mi-primary hover:bg-mi-dark text-white rounded-xl text-xs md:text-sm font-medium transition-colors shadow-md items-center gap-1.5 md:gap-2">
+                            <i class="fa-brands fa-whatsapp text-sm md:text-lg"></i> <span>Bagikan Laporan</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 md:mt-8">
+        
+        <!-- FILTER DATA -->
+        <div class="bg-mi-surface rounded-2xl border border-mi-border card-shadow p-4 md:p-6 mb-6 md:mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-5 gap-3">
+                <h2 class="text-xs md:text-sm font-bold text-mi-text1 tracking-wide uppercase flex items-center"><i class="fa-solid fa-sliders text-mi-text2 mr-2"></i>Filter Data Mutabaah</h2>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="resetFilter()" class="flex-1 sm:flex-none justify-center text-xs md:text-sm text-[#6B7C78] hover:text-mi-primary hover:bg-[#E9EEEC] bg-[#F5F7F6] border border-[#E5ECE9] font-medium px-3 md:px-4 py-1.5 md:py-2 rounded-xl transition-colors flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+                    <button onclick="applyFilters()" class="flex-1 sm:flex-none justify-center bg-mi-primary hover:bg-mi-dark text-white text-xs md:text-sm font-bold px-5 md:px-6 py-1.5 md:py-2 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Tampilkan
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4 lg:gap-5">
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Periode</label>
+                    <select id="filterPeriode" onchange="handlePeriodChange()" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                        <option value="today" selected>Hari Ini</option>
+                        <option value="this_week">Minggu Ini</option>
+                        <option value="this_month">Bulan Ini</option>
+                        <option value="custom">Custom Tanggal</option>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-2 grid grid-cols-2 gap-3" id="customDateContainer">
+                    <div>
+                        <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Mulai</label>
+                        <input type="date" id="filterStartDate" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-2 md:px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Selesai</label>
+                        <input type="date" id="filterEndDate" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-2 md:px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                    </div>
+                </div>
+
+                <div class="sm:col-span-1 lg:col-span-1">
+                    <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Kelas</label>
+                    <select id="filterKelas" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                        <option value="all">Semua Kelas</option>
+                        <!-- Diisi dari database Google Spreadsheet melalui API -->
+                    </select>
+                </div>
+
+                <!-- Filter Khusus Status Pengisian (Muncul hanya di Riwayat Ringkas) -->
+                <div class="sm:col-span-1 lg:col-span-1 filter-status-pengisian-only">
+                    <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Status Pengisian</label>
+                    <select id="filterStatusPengisian" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                        <option value="all">Semua Status</option>
+                        <option value="sudah">Sudah Mengisi</option>
+                        <option value="belum">Belum Mengisi</option>
+                    </select>
+                </div>
+
+                <!-- Filter Khusus Shalat Fardhu -->
+                <div class="sm:col-span-1 lg:col-span-1 filter-fardhu-only" style="display: none;">
+                    <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider" title="Menyaring siswa yang memiliki status ini pada waktu shalat terpilih.">Jawaban Shalat</label>
+                    <select id="filterStatusShalat" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                        <option value="all">Semua Jawaban</option>
+                        <option value="berjamaah">Berjamaah</option>
+                        <option value="munfarid">Munfarid</option>
+                        <option value="haid">Haid</option>
+                        <option value="tidak_shalat">Tidak Shalat</option>
+                    </select>
+                </div>
+                
+                <div class="sm:col-span-1 lg:col-span-1 filter-fardhu-harian-only" style="display: none;">
+                    <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Waktu Shalat</label>
+                    <select id="filterWaktuShalat" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                        <option value="all" selected>Semua Waktu</option>
+                        <option value="subuh">Subuh</option>
+                        <option value="dzuhur">Dzuhur</option>
+                        <option value="ashar">Ashar</option>
+                        <option value="maghrib">Maghrib</option>
+                        <option value="isya">Isya</option>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-2 lg:col-span-1 filter-general">
+                    <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Cari Nama</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-search text-mi-text2 text-xs md:text-sm"></i>
+                        </div>
+                        <input type="text" id="filterSearch" placeholder="Ketik nama..." class="block w-full pl-8 md:pl-9 border-mi-border border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-3 md:gap-4 lg:gap-3 mb-6 md:mb-8 relative">
+            <div id="cardsOverlay" class="absolute inset-0 z-20 bg-slate-900/10 backdrop-blur-[2px] flex items-center justify-center rounded-[20px] transition-all">
+                 <div class="flex flex-col items-center bg-white px-5 py-3 rounded-2xl shadow-[0_4px_20px_rgba(18,79,71,0.15)] border border-mi-primary/20 animate-pulse">
+                     <span class="text-sm font-bold text-mi-primary mb-1 flex items-center gap-2">
+                         <i class="fa-solid fa-circle-info"></i> Menunggu Filter
+                     </span>
+                     <span class="text-xs text-mi-text2">Klik tombol <strong>Tampilkan</strong> di panel atas</span>
+                 </div>
+            </div>
+
+            <div class="group bg-card-blue rounded-[20px] p-3 lg:p-4 border border-blue-100 shadow-sm flex flex-col justify-between h-[100px] md:h-[120px]">
+                <div class="flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs md:text-base"><i class="fa-solid fa-users"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-blue-700 uppercase tracking-wider mb-0.5">Total Siswa</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-mi-text1 leading-none" id="cardTotalSiswa">-</div>
+                </div>
+            </div>
+            
+            <div class="group bg-card-slate rounded-[20px] p-3 lg:p-4 border border-slate-200 shadow-sm flex flex-col justify-between h-[100px] md:h-[120px]">
+                <div class="flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-slate-600 text-white flex items-center justify-center text-xs md:text-base"><i class="fa-regular fa-calendar-check"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-0.5">Hari Periode</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-mi-text1 leading-none" id="cardHariPeriode">-</div>
+                </div>
+            </div>
+
+            <div class="group bg-card-green rounded-[20px] p-3 lg:p-4 border border-green-100 shadow-sm flex flex-col justify-between h-[100px] md:h-[120px]">
+                <div class="flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs md:text-base"><i class="fa-solid fa-check"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">Sudah Mengisi</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-mi-text1 leading-none" id="cardSudahMengisi">-</div>
+                </div>
+            </div>
+
+            <div class="group bg-card-rose rounded-[20px] p-3 lg:p-4 border border-rose-100 shadow-sm flex flex-col justify-between h-[100px] md:h-[120px]">
+                <div class="flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-rose-600 text-white flex items-center justify-center text-xs md:text-base"><i class="fa-solid fa-clock"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-rose-700 uppercase tracking-wider mb-0.5">Belum Mengisi</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-mi-text1 leading-none" id="cardBelumMengisi">-</div>
+                </div>
+            </div>
+
+            <div class="group bg-card-cyan rounded-[20px] p-3 lg:p-4 border border-cyan-100 shadow-sm flex flex-col justify-between h-[100px] md:h-[120px]">
+                <div class="flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-cyan-600 text-white flex items-center justify-center text-xs md:text-base"><i class="fa-solid fa-mosque"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-cyan-700 uppercase tracking-wider mb-0.5">Avg Berjamaah</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-mi-text1 leading-none" id="cardAvgBerjamaah">-</div>
+                </div>
+            </div>
+
+            <div class="group bg-card-orange rounded-[20px] p-3 lg:p-4 border border-orange-100 shadow-sm flex flex-col justify-between h-[100px] md:h-[120px]">
+                <div class="flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs md:text-base"><i class="fa-solid fa-shield-alt"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-orange-700 uppercase tracking-wider mb-0.5">Avg Disiplin</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-mi-text1 leading-none" id="cardAvgDisiplin">-</div>
+                </div>
+            </div>
+            
+            <div class="group bg-card-purple rounded-[20px] p-3 lg:p-4 border border-purple-200 shadow-sm flex flex-col justify-between h-[100px] md:h-[120px]">
+                <div class="flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-purple-600 text-white flex items-center justify-center text-xs md:text-base"><i class="fa-solid fa-book-open"></i></div>
+                </div>
+                <div class="mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-purple-700 uppercase tracking-wider mb-0.5">Total Aktivitas</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-mi-text1 leading-none" id="cardTotalAktivitas">-</div>
+                </div>
+            </div>
+
+            <div class="group bg-mi-primary rounded-[20px] p-3 lg:p-4 relative overflow-hidden flex flex-col justify-between h-[100px] md:h-[120px] shadow-sm">
+                <div class="absolute -right-8 -top-8 w-28 h-28 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                <div class="relative z-10 flex justify-between items-start w-full">
+                    <div class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-white/20 text-white flex items-center justify-center text-xs md:text-base backdrop-blur-sm"><i class="fa-solid fa-chart-pie"></i></div>
+                </div>
+                <div class="relative z-10 mt-auto">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-bold text-mi-soft uppercase tracking-wider mb-0.5">% Pengisian</div>
+                    <div class="text-xl md:text-2xl lg:text-3xl font-extrabold text-white leading-none" id="cardPersentase">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-mi-surface rounded-2xl border border-mi-border card-shadow overflow-hidden mb-8">
+            
+            <!-- TABS UTAMA -->
+            <div class="px-4 md:px-6 pt-4 md:pt-6 pb-2 border-b border-mi-border">
+                <div class="flex space-x-2 overflow-x-auto hide-scrollbar">
+                    <button onclick="switchTab('riwayat')" id="tab-riwayat" class="tab-btn px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium whitespace-nowrap flex items-center gap-2 active">
+                        <i class="fa-regular fa-clock"></i> Riwayat
+                    </button>
+                    <button onclick="switchTab('rekap')" id="tab-rekap" class="tab-btn px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                        <i class="fa-solid fa-table-list"></i> Rekap Mutabaah
+                    </button>
+                    <button onclick="switchTab('analisa')" id="tab-analisa" class="tab-btn px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                        <i class="fa-solid fa-chart-simple"></i> Analisa Data
+                    </button>
+                    <button onclick="switchTab('fardhu')" id="tab-fardhu" class="tab-btn px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium whitespace-nowrap flex items-center gap-2">
+                        <i class="fa-solid fa-mosque"></i> Rekap Shalat Fardhu
+                    </button>
+                </div>
+            </div>
+
+            <!-- STATE INITIAL & LOADING -->
+            <div id="initial-state" class="py-24 flex flex-col items-center justify-center text-center px-4">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-500 text-3xl mb-4 shadow-sm relative">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="absolute -top-1 -right-1 flex h-4 w-4">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-4 w-4 bg-amber-500"></span>
+                    </span>
+                </div>
+                <h3 class="text-lg font-bold text-mi-text1 mb-2">Pilih Filter & Tampilkan Data</h3>
+                <p class="text-sm text-mi-text2 max-w-md mb-6">Anda belum memuat data mutabaah. Silakan sesuaikan periode dan kelas di panel atas, kemudian klik tombol di bawah ini.</p>
+                <button onclick="applyFilters()" class="bg-mi-primary hover:bg-mi-dark text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-colors shadow-[0_0_15px_rgba(18,79,71,0.4)] flex items-center gap-2 animate-bounce">
+                    <i class="fa-solid fa-bolt"></i> Tampilkan Data Sekarang
+                </button>
+            </div>
+            
+            <div id="loading-state" class="py-24 hidden flex-col items-center justify-center text-center">
+                <div class="loader mb-4"></div>
+                <p class="text-sm text-mi-text2 font-bold tracking-wide animate-pulse">Memproses Data...</p>
+            </div>
+
+            <!-- CONTENT TABS -->
+            <div id="tab-contents-container" class="hidden">
+                
+                <!-- TAB 1: RIWAYAT DETAIL -->
+                <div id="content-riwayat" class="p-0 hidden flex-col min-h-[400px]">
+                    <div class="px-4 md:px-6 py-3 border-b border-mi-border flex gap-2 overflow-x-auto hide-scrollbar justify-between items-center">
+                        <div class="flex gap-2">
+                            <button onclick="setMode('riwayat', 'ringkas')" id="btn-riwayat-ringkas" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all bg-mi-primary text-white shadow-sm whitespace-nowrap">Riwayat Ringkas</button>
+                            <button onclick="setMode('riwayat', 'detail')" id="btn-riwayat-detail" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all bg-mi-soft text-mi-text2 hover:text-mi-primary whitespace-nowrap">Riwayat Detail</button>
+                        </div>
+                    </div>
+
+                    <!-- LEGENDA RIWAYAT DETAIL -->
+                    <div class="bg-slate-50/50 py-3 px-4 md:px-6 border-b border-slate-100 hidden flex-col gap-2 text-[10px] md:text-xs font-medium text-slate-500" id="legendaRiwayat">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="font-bold text-slate-700 mr-1">Shalat:</span>
+                            <span class="flex items-center gap-1"><span class="w-3.5 h-3.5 rounded-full bg-emerald-500"></span> Berjamaah</span>
+                            <span class="flex items-center gap-1"><span class="w-3.5 h-3.5 rounded-full bg-amber-500"></span> Munfarid</span>
+                            <span class="flex items-center gap-1"><span class="w-3.5 h-3.5 rounded-full bg-purple-500"></span> Haid</span>
+                            <span class="flex items-center gap-1"><span class="w-3.5 h-3.5 rounded-full bg-rose-500"></span> Tidak Shalat</span>
+                            <span class="flex items-center gap-1"><span class="w-3.5 h-3.5 border border-slate-300 rounded-full bg-slate-100"></span> Belum Diisi</span>
+                        </div>
+                        <div class="w-full border-t border-slate-200/60 my-0.5 sm:hidden"></div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="font-bold text-slate-700 mr-1">Aktivitas:</span>
+                            <span class="flex items-center gap-1"><div class="w-3.5 h-3.5 rounded text-[8px] font-bold flex items-center justify-center bg-emerald-500 text-white">T</div> Tilawah</span>
+                            <span class="flex items-center gap-1"><div class="w-3.5 h-3.5 rounded text-[8px] font-bold flex items-center justify-center bg-blue-500 text-white">H</div> Hafalan</span>
+                            <span class="flex items-center gap-1"><div class="w-3.5 h-3.5 rounded text-[8px] font-bold flex items-center justify-center bg-orange-500 text-white">O</div> Olahraga</span>
+                            <span class="flex items-center gap-1"><div class="w-3.5 h-3.5 rounded text-[8px] font-bold flex items-center justify-center bg-purple-500 text-white">N</div> Ngobrol</span>
+                            <span class="flex items-center gap-1"><div class="w-3.5 h-3.5 rounded text-[8px] font-bold flex items-center justify-center bg-slate-100 text-transparent border border-slate-300">-</div> Belum Diisi</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="min-w-full divide-y divide-mi-border">
+                            <thead class="bg-mi-bg/50" id="thead-riwayat"></thead>
+                            <tbody id="tbody-riwayat" class="bg-white divide-y divide-mi-border"></tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="empty-riwayat" class="hidden py-16 text-center w-full">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-mi-bg rounded-full flex items-center justify-center mx-auto mb-4 text-mi-text2 text-xl md:text-2xl"><i class="fa-solid fa-search-minus"></i></div>
+                        <p class="text-sm md:text-base text-mi-text2 font-medium px-4">Tidak ada data riwayat yang sesuai dengan filter.</p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center px-4 md:px-6 py-3 bg-mi-bg/30 border-t border-mi-border gap-3 mt-auto">
+                        <div class="text-xs md:text-sm text-mi-text2" id="pg-info-riwayat">Menampilkan 0-0 dari 0 data</div>
+                        <div class="flex items-center gap-2">
+                            <select id="pg-limit-riwayat" onchange="changePageLimit('riwayat', this.value)" class="border border-mi-border rounded bg-white text-xs py-1 px-2 text-mi-text1 outline-none focus:border-mi-primary">
+                                <option value="10">10 / hal</option><option value="25" selected>25 / hal</option><option value="50">50 / hal</option>
+                            </select>
+                            <div class="flex border border-mi-border rounded overflow-hidden">
+                                <button onclick="changePage('riwayat', -1)" class="px-2 py-1 bg-white hover:bg-mi-soft text-mi-text2 border-r border-mi-border transition-colors"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                                <span id="pg-page-riwayat" class="px-3 py-1 bg-white text-xs font-semibold text-mi-text1 flex items-center justify-center min-w-[32px]">1</span>
+                                <button onclick="changePage('riwayat', 1)" class="px-2 py-1 bg-white hover:bg-mi-soft text-mi-text2 border-l border-mi-border transition-colors"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: REKAP MUTABAAH -->
+                <div id="content-rekap" class="p-0 hidden flex-col min-h-[400px]">
+                    <div class="px-4 md:px-6 py-3 border-b border-mi-border flex gap-2 overflow-x-auto hide-scrollbar">
+                        <button onclick="setMode('rekap', 'ringkas')" id="btn-rekap-ringkas" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all bg-mi-primary text-white shadow-sm whitespace-nowrap">Rekap Ringkas</button>
+                        <button onclick="setMode('rekap', 'harian')" id="btn-rekap-harian" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all bg-mi-soft text-mi-text2 hover:text-mi-primary whitespace-nowrap">Rekap Harian</button>
+                        <button onclick="setMode('rekap', 'belum')" id="btn-rekap-belum" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all bg-mi-soft text-mi-text2 hover:text-mi-primary whitespace-nowrap">Siswa Belum Mengisi</button>
+                    </div>
+
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="min-w-full divide-y divide-mi-border">
+                            <thead class="bg-mi-bg/50" id="thead-rekap"></thead>
+                            <tbody id="tbody-rekap" class="bg-white divide-y divide-mi-border"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="empty-rekap" class="hidden py-16 text-center w-full">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-mi-bg rounded-full flex items-center justify-center mx-auto mb-4 text-mi-text2 text-xl md:text-2xl"><i class="fa-solid fa-folder-open"></i></div>
+                        <p class="text-sm md:text-base text-mi-text2 font-medium px-4">Tidak ada data rekap yang sesuai dengan filter.</p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center px-4 md:px-6 py-3 bg-mi-bg/30 border-t border-mi-border gap-3 mt-auto">
+                        <div class="text-xs md:text-sm text-mi-text2" id="pg-info-rekap">Menampilkan 0-0 dari 0 data</div>
+                        <div class="flex items-center gap-2">
+                            <select id="pg-limit-rekap" onchange="changePageLimit('rekap', this.value)" class="border border-mi-border rounded bg-white text-xs py-1 px-2 text-mi-text1 outline-none focus:border-mi-primary">
+                                <option value="10">10 / hal</option><option value="25" selected>25 / hal</option><option value="50">50 / hal</option>
+                            </select>
+                            <div class="flex border border-mi-border rounded overflow-hidden">
+                                <button onclick="changePage('rekap', -1)" class="px-2 py-1 bg-white hover:bg-mi-soft text-mi-text2 border-r border-mi-border transition-colors"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                                <span id="pg-page-rekap" class="px-3 py-1 bg-white text-xs font-semibold text-mi-text1 flex items-center justify-center min-w-[32px]">1</span>
+                                <button onclick="changePage('rekap', 1)" class="px-2 py-1 bg-white hover:bg-mi-soft text-mi-text2 border-l border-mi-border transition-colors"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ANALISA DATA -->
+                <div id="content-analisa" class="p-4 md:p-6 hidden min-h-[400px]">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+                        <div class="bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm">
+                            <h3 class="text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-4 md:mb-6 text-center">Distribusi Shalat Fardhu</h3>
+                            <div class="relative h-48 md:h-64 w-full flex justify-center">
+                                <canvas id="chartDistribusi"></canvas>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm flex flex-col overflow-hidden">
+                            <h3 class="text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-4 md:mb-6" id="titleAnalisaKelas">Persentase Pengisian per Kelas</h3>
+                            <div class="relative h-48 md:h-64 w-full mb-4 md:mb-6">
+                                <canvas id="chartKelas"></canvas>
+                            </div>
+                            <div class="overflow-x-auto flex-grow -mx-4 md:mx-0 px-4 md:px-0">
+                                <table class="min-w-full divide-y divide-mi-border text-xs md:text-sm border border-mi-border rounded-lg overflow-hidden">
+                                    <thead class="bg-mi-bg">
+                                        <tr>
+                                            <th class="px-3 md:px-4 py-2 md:py-3 text-left font-semibold text-mi-text2">Kelas</th>
+                                            <th class="px-2 md:px-4 py-2 md:py-3 text-center font-semibold text-mi-text2">Total Siswa</th>
+                                            <th class="px-3 md:px-4 py-2 md:py-3 text-center font-bold text-mi-primary">% Pengisian</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-analisa-kelas" class="divide-y divide-mi-border bg-white"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- SECTION: Monitoring Kelengkapan Mutabaah Kelas -->
+                    <div class="bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm mb-6 md:mb-8">
+                        <div class="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h3 class="text-sm md:text-base font-bold text-mi-text1 uppercase tracking-wide">Monitoring Pengisian Mutabaah Kelas</h3>
+                                <p class="text-[10px] md:text-xs text-mi-text2 mt-1">Memantau kelengkapan pengisian mutabaah oleh siswa di setiap kelas pada periode terpilih.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+                            <div class="group bg-card-slate rounded-xl p-3 md:p-4 border border-slate-200 shadow-sm flex flex-col justify-between h-[80px] md:h-[100px]">
+                                <div class="text-[9px] md:text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-0.5">Total Kelas</div>
+                                <div class="text-xl md:text-2xl font-extrabold text-mi-text1" id="cardCompTotal">-</div>
+                            </div>
+                            <div class="group bg-card-green rounded-xl p-3 md:p-4 border border-green-200 shadow-sm flex flex-col justify-between h-[80px] md:h-[100px]">
+                                <div class="text-[9px] md:text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-0.5">Kelas Lengkap</div>
+                                <div class="text-xl md:text-2xl font-extrabold text-emerald-700" id="cardCompComplete">-</div>
+                            </div>
+                            <div class="group bg-card-rose rounded-xl p-3 md:p-4 border border-rose-200 shadow-sm flex flex-col justify-between h-[80px] md:h-[100px]">
+                                <div class="text-[9px] md:text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-0.5">Kelas Belum Lengkap</div>
+                                <div class="text-xl md:text-2xl font-extrabold text-rose-700" id="cardCompIncomplete">-</div>
+                            </div>
+                            <div class="group bg-[#FFF7ED] rounded-xl p-3 md:p-4 border border-orange-200 shadow-sm flex flex-col justify-between h-[80px] md:h-[100px]">
+                                <div class="text-[9px] md:text-[10px] font-bold text-orange-700 uppercase tracking-wider mb-0.5">Total Jurnal Kosong</div>
+                                <div class="text-xl md:text-2xl font-extrabold text-orange-700" id="cardCompMissing">-</div>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto border border-mi-border rounded-lg">
+                            <table class="min-w-full divide-y divide-mi-border text-xs md:text-sm">
+                                <thead class="bg-mi-bg">
+                                    <tr>
+                                        <th class="px-3 md:px-4 py-2 md:py-3 text-left font-semibold text-mi-text2">Kelas</th>
+                                        <th class="px-2 md:px-4 py-2 md:py-3 text-center font-semibold text-mi-text2">Target Jurnal</th>
+                                        <th class="px-2 md:px-4 py-2 md:py-3 text-center font-semibold text-emerald-600">Terisi</th>
+                                        <th class="px-2 md:px-4 py-2 md:py-3 text-center font-semibold text-rose-600">Kosong</th>
+                                        <th class="px-2 md:px-4 py-2 md:py-3 text-center font-semibold text-mi-text2">Siswa BDI</th>
+                                        <th class="px-3 md:px-4 py-2 md:py-3 text-center font-bold text-mi-primary">Kelengkapan</th>
+                                        <th class="px-2 md:px-4 py-2 md:py-3 text-center font-semibold text-mi-text2">Status</th>
+                                        <th class="px-3 md:px-4 py-2 md:py-3 text-center font-semibold text-mi-text2">Detail</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-analisa-kelengkapan" class="divide-y divide-mi-border bg-white">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div class="bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                            <div class="flex justify-between items-start mb-3 md:mb-4">
+                                <h3 class="text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide flex items-center gap-2">
+                                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center text-xs md:text-base"><i class="fa-solid fa-list-check"></i></div>
+                                    Kesimpulan
+                                </h3>
+                                <button onclick="copyKesimpulan()" class="text-mi-text2 hover:text-blue-600 transition-colors bg-slate-50 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold flex items-center gap-1.5 shadow-sm" title="Salin Kesimpulan">
+                                    <i class="fa-regular fa-copy"></i> Salin Teks
+                                </button>
+                            </div>
+                            <p class="text-mi-text2 text-xs md:text-sm leading-relaxed" id="analisaKesimpulan"></p>
+                            
+                            <div id="analisaDaftarBdi" class="mt-4 pt-4 border-t border-slate-100 hidden">
+                                <h4 class="text-xs font-bold text-mi-text1 uppercase mb-2">Daftar Kelas Belum Lengkap:</h4>
+                                <ul id="analisaDaftarBdiList" class="text-mi-text2 text-xs md:text-sm leading-relaxed list-decimal list-inside space-y-1"></ul>
+                            </div>
+                        </div>
+                        <div class="bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                            <h3 class="text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-3 md:mb-4 flex items-center gap-2">
+                                <div class="w-6 h-6 md:w-8 md:h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xs md:text-base"><i class="fa-regular fa-lightbulb"></i></div>
+                                Rekomendasi
+                            </h3>
+                            <ul class="text-mi-text2 text-xs md:text-sm leading-relaxed list-none space-y-2" id="analisaRekomendasi"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: REKAP SHALAT FARDHU -->
+                <div id="content-fardhu" class="p-0 hidden flex-col min-h-[400px]">
+                    <div class="px-4 md:px-6 py-3 border-b border-mi-border flex justify-between items-center bg-blue-50/30">
+                        <div class="flex gap-2 overflow-x-auto hide-scrollbar">
+                            <button onclick="setMode('fardhu', 'ringkas')" id="btn-fardhu-ringkas" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all bg-mi-primary text-white shadow-sm whitespace-nowrap">Rekap Ringkas</button>
+                            <button onclick="setMode('fardhu', 'harian')" id="btn-fardhu-harian" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all bg-mi-soft text-mi-text2 hover:text-mi-primary whitespace-nowrap">Rekap Detail</button>
+                            <button onclick="setMode('fardhu', 'analisis')" id="btn-fardhu-analisis" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all bg-mi-soft text-mi-text2 hover:text-mi-primary whitespace-nowrap">Analisis Waktu Shalat</button>
+                            <button onclick="setMode('fardhu', 'belum')" id="btn-fardhu-belum" class="px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all bg-mi-soft text-mi-text2 hover:text-mi-primary whitespace-nowrap">Belum Mengisi</button>
+                        </div>
+                        <div class="text-xs text-mi-text2 font-medium hidden sm:block ml-2 shrink-0">
+                            <i class="fa-solid fa-circle-info text-blue-500 mr-1"></i> Rekap shalat wajib
+                        </div>
+                    </div>
+
+                    <!-- Untuk Mode Analisis -->
+                    <div id="fardhu-analisis-container" class="hidden p-4 md:p-6 w-full">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-white border border-mi-border rounded-xl p-4 shadow-sm">
+                                <h3 class="text-sm font-bold text-mi-text1 text-center mb-4">Grafik Distribusi per Waktu Shalat</h3>
+                                <div class="relative h-64 w-full">
+                                    <canvas id="chartFardhuAnalisis"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-white border border-mi-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+                                <div class="p-4 bg-slate-50 border-b border-mi-border font-bold text-sm text-mi-text1">Rincian Persentase</div>
+                                <div class="overflow-x-auto flex-grow p-4">
+                                    <table class="w-full text-xs text-left">
+                                        <thead class="text-mi-text2 uppercase border-b border-mi-border">
+                                            <tr><th class="pb-2">Waktu</th><th class="pb-2 text-center">Berjamaah</th><th class="pb-2 text-center">Munfarid</th><th class="pb-2 text-center">Haid</th><th class="pb-2 text-center">Tidak</th><th class="pb-2 text-center">Kosong</th></tr>
+                                        </thead>
+                                        <tbody id="tbody-fardhu-analisis" class="divide-y divide-slate-100"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Untuk Mode Lainnya (Tabel Utama Fardhu) -->
+                    <div id="fardhu-table-container" class="overflow-x-auto flex-grow w-full">
+                        <table class="min-w-full divide-y divide-mi-border">
+                            <thead class="bg-mi-bg/50" id="thead-fardhu"></thead>
+                            <tbody id="tbody-fardhu" class="bg-white divide-y divide-mi-border"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="empty-fardhu" class="hidden py-16 text-center w-full">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-mi-bg rounded-full flex items-center justify-center mx-auto mb-4 text-mi-text2 text-xl md:text-2xl"><i class="fa-solid fa-mosque"></i></div>
+                        <p class="text-sm md:text-base text-mi-text2 font-medium px-4">Tidak ada data rekap fardhu yang sesuai dengan filter.</p>
+                    </div>
+
+                    <div id="pg-container-fardhu" class="flex flex-col sm:flex-row justify-between items-center px-4 md:px-6 py-3 bg-mi-bg/30 border-t border-mi-border gap-3 mt-auto w-full">
+                        <div class="text-xs md:text-sm text-mi-text2" id="pg-info-fardhu">Menampilkan 0-0 dari 0 data</div>
+                        <div class="flex items-center gap-2">
+                            <select id="pg-limit-fardhu" onchange="changePageLimit('fardhu', this.value)" class="border border-mi-border rounded bg-white text-xs py-1 px-2 text-mi-text1 outline-none focus:border-mi-primary">
+                                <option value="10">10 / hal</option><option value="25" selected>25 / hal</option><option value="50">50 / hal</option>
+                            </select>
+                            <div class="flex border border-mi-border rounded overflow-hidden">
+                                <button onclick="changePage('fardhu', -1)" class="px-2 py-1 bg-white hover:bg-mi-soft text-mi-text2 border-r border-mi-border transition-colors"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                                <span id="pg-page-fardhu" class="px-3 py-1 bg-white text-xs font-semibold text-mi-text1 flex items-center justify-center min-w-[32px]">1</span>
+                                <button onclick="changePage('fardhu', 1)" class="px-2 py-1 bg-white hover:bg-mi-soft text-mi-text2 border-l border-mi-border transition-colors"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Detail Jurnal Mutabaah -->
+    <div id="modalDetail" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity modal-overlay" aria-hidden="true" onclick="closeModal('modalDetail')"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-mi-surface rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full border border-mi-border relative z-10">
+                
+                <div class="px-4 md:px-6 pt-5 md:pt-6 pb-4 border-b border-mi-border">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-3 md:gap-4">
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-mi-soft text-mi-primary rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-regular fa-user"></i></div>
+                            <div>
+                                <h3 class="text-lg md:text-xl font-bold text-mi-text1" id="mdl-name">Nama Siswa</h3>
+                                <p class="text-xs md:text-sm text-mi-text2 font-medium mt-0.5"><i class="fa-regular fa-calendar mr-1 text-mi-primary"></i> <span id="mdl-date">Tanggal</span> | <i class="fa-solid fa-graduation-cap mx-1 text-mi-primary"></i> <span id="mdl-class">Kelas</span></p>
+                            </div>
+                        </div>
+                        <button onclick="closeModal('modalDetail')" class="w-7 h-7 rounded-full bg-mi-bg hover:bg-gray-200 text-mi-text2 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="px-4 md:px-6 py-4 max-h-[60vh] overflow-y-auto bg-slate-50 space-y-4">
+                    
+                    <div id="mdl-status-alert" class="hidden p-3 rounded-xl text-sm font-bold text-center border"></div>
+
+                    <!-- Fardhu -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i class="fas fa-mosque text-blue-500"></i> Shalat Fardhu</h4>
+                        <div id="mdl-fardhu-grid" class="grid grid-cols-5 gap-2"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Disiplin -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i class="fas fa-shield-alt text-teal-500"></i> Kedisiplinan</h4>
+                            <div id="mdl-disiplin-grid" class="flex flex-col gap-2 text-sm text-slate-600"></div>
+                        </div>
+                        <!-- Sunnah -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i class="fas fa-sun text-amber-500"></i> Amalan Sunnah</h4>
+                            <div id="mdl-sunnah-grid" class="flex flex-col gap-2 text-sm text-slate-600"></div>
+                        </div>
+                    </div>
+
+                    <!-- Aktivitas -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i class="fas fa-tasks text-emerald-500"></i> Aktivitas Tambahan</h4>
+                        <div id="mdl-aktivitas-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm"></div>
+                    </div>
+
+                    <!-- Refleksi -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><i class="fas fa-comment-dots text-rose-400"></i> Refleksi Harian</h4>
+                        <p id="mdl-refleksi" class="text-sm text-slate-600 italic bg-rose-50 p-3 rounded-lg border border-rose-100"></p>
+                    </div>
+
+                </div>
+                
+                <div class="bg-white px-4 md:px-6 py-3 border-t border-mi-border text-right">
+                    <button type="button" onclick="closeModal('modalDetail')" class="px-5 py-2 bg-mi-primary hover:bg-mi-dark text-white rounded-xl text-sm font-medium transition-colors shadow-sm">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rekap Siswa (Dari Ringkas) -->
+    <div id="modalRekapSiswa" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity modal-overlay" aria-hidden="true" onclick="closeModal('modalRekapSiswa')"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-mi-surface rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-xl w-full border border-mi-border relative z-10">
+                <div class="px-4 md:px-6 pt-5 pb-4 border-b border-mi-border flex justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-mi-text1" id="mdlRe-name">Nama Siswa</h3>
+                        <p class="text-xs text-mi-text2 font-medium mt-1"><i class="fa-solid fa-graduation-cap mr-1"></i> <span id="mdlRe-class">Kelas</span> | <span id="mdlRe-period">Periode</span></p>
+                    </div>
+                    <button onclick="closeModal('modalRekapSiswa')" class="w-7 h-7 rounded-full bg-mi-bg hover:bg-gray-200 text-mi-text2 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="p-4 md:p-6 bg-slate-50">
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-sm">
+                            <p class="text-[10px] uppercase font-bold text-slate-400">Target Hari</p>
+                            <p class="text-xl font-black text-slate-700" id="mdlRe-target">-</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-emerald-200 text-center shadow-sm">
+                            <p class="text-[10px] uppercase font-bold text-emerald-500">Sudah Mengisi</p>
+                            <p class="text-xl font-black text-emerald-600" id="mdlRe-isi">-</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-rose-200 text-center shadow-sm">
+                            <p class="text-[10px] uppercase font-bold text-rose-500">Belum Mengisi</p>
+                            <p class="text-xl font-black text-rose-600" id="mdlRe-belum">-</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div class="bg-slate-100 p-2 text-center text-xs font-bold text-slate-600 uppercase border-b border-slate-200" id="mdlRe-listTitle">Rincian Tanggal</div>
+                        <div class="max-h-48 overflow-y-auto p-2" id="mdlRe-datesList"></div>
+                    </div>
+                </div>
+                <div class="bg-white px-4 md:px-6 py-3 border-t border-mi-border text-right">
+                    <button type="button" onclick="closeModal('modalRekapSiswa')" class="px-5 py-2 bg-mi-primary text-white rounded-xl text-sm font-medium transition-colors shadow-sm">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Detail Rekap Shalat Fardhu -->
+    <div id="modalFardhuDetail" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 no-print">
+        <div class="absolute inset-0 bg-slate-900 bg-opacity-50 backdrop-blur-sm transition-opacity" onclick="closeModal('modalFardhuDetail')"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-full flex flex-col transform opacity-100 transition-all duration-300 border border-slate-100 z-10 overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-address-card text-indigo-500 mr-2"></i> Detail Mutabaah Shalat</h3>
+                <button onclick="closeModal('modalFardhuDetail')" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+                <div class="flex flex-col md:flex-row justify-between gap-6 mb-6">
+                    <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                        <div class="text-slate-500">Nama Siswa</div><div class="font-bold text-slate-800" id="modFdName">-</div>
+                        <div class="text-slate-500">Kelas</div><div class="font-medium text-slate-800" id="modFdClass">-</div>
+                        <div class="text-slate-500">Periode</div><div class="font-medium text-slate-800" id="modFdPeriod">-</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100 text-center"><div class="text-xs text-indigo-600 font-semibold mb-1">Target Kesempatan</div><div class="text-lg font-bold text-indigo-900" id="modFdChance">0</div></div>
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-center"><div class="text-xs text-emerald-600 font-semibold mb-1">Terlaksana</div><div class="text-lg font-bold text-emerald-900" id="modFdDone">0</div></div>
+                    <div class="bg-rose-50 p-3 rounded-xl border border-rose-100 text-center"><div class="text-xs text-rose-600 font-semibold mb-1">Tidak Shalat</div><div class="text-lg font-bold text-rose-900" id="modFdMiss">0</div></div>
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-100 text-center"><div class="text-xs text-amber-600 font-semibold mb-1">Haid</div><div class="text-lg font-bold text-amber-900" id="modFdHaid">0</div></div>
+                </div>
+                <h4 class="font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Detail Per Waktu Shalat</h4>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6" id="modFdWaktuGrid"></div>
+                
+                <h4 class="font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Rekap Harian</h4>
+                <div class="flex items-center gap-3 mb-3 text-xs flex-wrap">
+                    <span class="font-medium text-slate-500">Legenda:</span>
+                    <span class="flex items-center gap-1"><span class="w-4 h-4 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">B</span> Berjamaah</span>
+                    <span class="flex items-center gap-1"><span class="w-4 h-4 rounded bg-amber-100 text-amber-700 flex items-center justify-center font-bold">M</span> Munfarid</span>
+                    <span class="flex items-center gap-1"><span class="w-4 h-4 rounded bg-purple-100 text-purple-700 flex items-center justify-center font-bold">H</span> Haid</span>
+                    <span class="flex items-center gap-1"><span class="w-4 h-4 rounded bg-rose-100 text-rose-700 flex items-center justify-center font-bold">T</span> Tidak Shalat</span>
+                    <span class="flex items-center gap-1"><span class="w-4 h-4 rounded bg-slate-100 border border-slate-300 border-dashed text-slate-400 flex items-center justify-center font-bold">X</span> Belum Diisi</span>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-sm text-center">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500"><tr><th class="p-2 font-semibold">Tgl</th><th class="p-2 font-semibold">Subuh</th><th class="p-2 font-semibold">Dzuhur</th><th class="p-2 font-semibold">Ashar</th><th class="p-2 font-semibold">Maghrib</th><th class="p-2 font-semibold">Isya</th></tr></thead>
+                        <tbody id="modFdTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-3xl text-right">
+                <button onclick="closeModal('modalFardhuDetail')" class="px-5 py-2 bg-white border border-slate-300 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition shadow-sm">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Kelengkapan Kelas -->
+    <div id="modalClassCompleteness" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity modal-overlay" aria-hidden="true" onclick="closeModal('modalClassCompleteness')"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-mi-surface rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full border border-mi-border relative z-10">
+                <div class="px-4 md:px-6 pt-5 md:pt-6 pb-5 md:pb-6">
+                    <div class="flex justify-between items-start mb-5 md:mb-6">
+                        <div class="flex items-center gap-3 md:gap-4">
+                            <div class="w-10 h-10 md:w-12 md:h-12 bg-mi-soft text-mi-primary rounded-xl flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg md:text-xl font-bold text-mi-text1" id="detCompClassName">Nama Kelas</h3>
+                                <p class="text-xs md:text-sm text-mi-text2 mt-0.5 font-medium"><i class="fa-solid fa-magnifying-glass-chart mr-1 text-mi-primary"></i> Detail Kelengkapan Pengisian Mutabaah</p>
+                            </div>
+                        </div>
+                        <button onclick="closeModal('modalClassCompleteness')" class="w-7 h-7 rounded-full bg-mi-bg hover:bg-gray-200 text-mi-text2 flex items-center justify-center transition-colors">
+                            <i class="fa-solid fa-xmark text-base"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2 md:gap-4 mb-6 bg-slate-50 p-3 md:p-5 rounded-xl border border-mi-border">
+                        <div class="text-center">
+                            <div class="text-[9px] md:text-xs font-semibold uppercase tracking-wider text-mi-text2 mb-1">Target</div>
+                            <div class="text-lg md:text-2xl font-bold text-slate-600" id="detCompEff">-</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[9px] md:text-xs font-semibold uppercase tracking-wider text-mi-text2 mb-1">Terisi</div>
+                            <div class="text-lg md:text-2xl font-bold text-emerald-600" id="detCompFilled">-</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-[9px] md:text-xs font-semibold uppercase tracking-wider text-mi-text2 mb-1">Kosong</div>
+                            <div class="text-lg md:text-2xl font-bold text-rose-600" id="detCompMissing">-</div>
+                        </div>
+                        <div class="text-center border-l border-mi-border flex flex-col justify-center">
+                            <div class="text-[9px] md:text-xs font-semibold uppercase tracking-wider text-mi-text2 mb-1">Kelengkapan</div>
+                            <div class="text-sm md:text-2xl font-bold text-mi-primary" id="detCompPct">-</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-3 mt-4">
+                        <h4 class="text-sm md:text-base font-bold text-mi-text1"><i class="fa-solid fa-user-clock mr-2 text-mi-primary"></i>Siswa Belum Lengkap (BDI)</h4>
+                        <div id="detCompStatusBadge"></div>
+                    </div>
+                    <div id="detCompBdiList" class="max-h-60 overflow-y-auto p-2">
+                        <!-- Diisi dari database Google Spreadsheet melalui API -->
+                    </div>
+
+                </div>
+                <div class="bg-mi-bg/50 px-4 md:px-6 py-3 flex flex-col sm:flex-row-reverse gap-2 border-t border-mi-border">
+                    <button type="button" onclick="closeModal('modalClassCompleteness')" class="w-full inline-flex justify-center items-center rounded-xl px-5 py-2 bg-mi-primary hover:bg-mi-dark text-white text-sm font-medium transition-colors sm:w-auto shadow-sm">Tutup Detail</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Laporan WhatsApp -->
+    <div id="modalWhatsApp" class="modal-container-fixed hidden" aria-hidden="true" style="position:fixed; inset:0; z-index:99999;">
+        <div class="modal-overlay" onclick="closeModal('modalWhatsApp')"></div>
+        <div class="modal-wrapper w-full h-full flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+            <div class="modal-content-box pointer-events-auto w-full lg:w-[90vw] max-w-6xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-mi-border overflow-hidden flex flex-col">
+                <div class="px-4 py-4 border-b border-mi-border flex justify-between items-center bg-white shrink-0">
+                    <div>
+                        <h3 class="text-base md:text-lg font-bold text-mi-text1 flex items-center gap-2"><i class="fa-brands fa-whatsapp text-[#25D366] text-xl"></i> Bagikan Laporan Mutabaah</h3>
+                    </div>
+                    <button onclick="closeModal('modalWhatsApp')" class="w-8 h-8 rounded-full bg-mi-bg hover:bg-rose-100 text-mi-text2 flex items-center justify-center"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="flex-1 flex flex-col lg:flex-row bg-gray-50 overflow-hidden min-h-0">
+                    <div class="w-full lg:w-5/12 flex flex-col bg-white border-r border-mi-border shadow-sm shrink-0 lg:shrink min-h-0 overflow-y-auto">
+                        <div class="p-4 md:p-5 flex flex-col gap-5">
+                            <div>
+                                <label class="block text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-2.5">Pilihan Format Laporan</label>
+                                <div class="flex flex-row gap-2 w-full">
+                                    <button type="button" onclick="setWaFormat('format_1')" id="btnWaFormat1" class="flex-1 wa-format-btn active text-center px-2 py-2.5 rounded-xl border-2 transition-all font-bold text-xs md:text-sm">Format 1</button>
+                                    <button type="button" onclick="setWaFormat('format_2')" id="btnWaFormat2" class="flex-1 wa-format-btn text-center px-2 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-all font-bold text-xs md:text-sm">Format 2</button>
+                                </div>
+                            </div>
+
+                            <div class="border border-mi-border rounded-xl bg-white shadow-sm flex flex-col overflow-hidden">
+                                <button type="button" onclick="toggleWaSettings()" class="w-full px-4 py-3 flex justify-between items-center bg-mi-soft/30 hover:bg-mi-soft/60 transition-colors shrink-0">
+                                    <span class="font-bold text-xs md:text-sm text-mi-text1"><i class="fa-solid fa-gear mr-2 text-mi-primary"></i>Pengaturan Isi Laporan</span>
+                                    <i id="waAccordionIcon" class="fa-solid fa-chevron-down text-mi-text2 transition-transform duration-300"></i>
+                                </button>
+                                
+                                <div id="waSettingsContent" class="wa-accordion-content border-t border-mi-border">
+                                    <div class="px-4 py-4 flex flex-col gap-5">
+                                        <div class="pb-4 border-b border-gray-100">
+                                            <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-mi-text1">
+                                                <input type="checkbox" id="cbWaModeRingkas" onchange="toggleWaModeRingkas()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Ringkas
+                                            </label>
+                                            <p class="text-[10px] text-mi-text2 mt-1 ml-6">Sembunyikan rekapitulasi per kelas dan daftar kelas belum lengkap.</p>
+                                        </div>
+
+                                        <div>
+                                            <div class="text-[10px] md:text-xs font-bold text-mi-text2 uppercase tracking-wide mb-2">Informasi Laporan</div>
+                                            <div class="grid grid-cols-2 gap-2 text-xs md:text-sm text-mi-text1">
+                                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="cbWaTotal" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Total Siswa</label>
+                                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="cbWaTarget" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Target Jurnal</label>
+                                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="cbWaTerisi" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Jurnal Terisi</label>
+                                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="cbWaPersentase" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> % Pengisian</label>
+                                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="cbWaDisiplin" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Disiplin</label>
+                                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="cbWaFardhu" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Shalat Fardhu</label>
+                                            </div>
+                                        </div>
+
+                                        <div id="waRekapGroup" class="pt-4 border-t border-mi-border transition-opacity">
+                                            <div class="text-[10px] md:text-xs font-bold text-mi-text2 uppercase tracking-wide mb-2">Rekapitulasi</div>
+                                            <label class="flex items-center gap-2 cursor-pointer text-xs md:text-sm text-mi-text1">
+                                                <input type="checkbox" id="cbWaRekapKelas" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Rekap Per Kelas
+                                            </label>
+                                        </div>
+
+                                        <div id="waNameGroup" class="pt-4 border-t border-mi-border transition-opacity">
+                                            <div class="text-[10px] md:text-xs font-bold text-mi-text2 uppercase tracking-wide mb-2">Daftar Kelas</div>
+                                            <div class="flex flex-col gap-2 text-xs md:text-sm text-mi-text1">
+                                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="cbWaBDI" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Daftar Kelas Belum Lengkap</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="pt-4 border-t border-mi-border">
+                                            <div class="text-[10px] md:text-xs font-bold text-mi-text2 uppercase tracking-wide mb-2">Pesan Penutup</div>
+                                            <label class="flex items-center gap-2 cursor-pointer text-xs md:text-sm text-mi-text1">
+                                                <input type="checkbox" id="cbWaPesanPenutup" checked onchange="generateWhatsAppReport()" class="w-4 h-4 text-mi-primary rounded border-gray-300 focus:ring-mi-primary"> Sertakan Pesan Sistem
+                                            </label>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-full lg:w-7/12 flex flex-col min-h-0 bg-gray-50">
+                        <div class="p-4 md:p-5 flex flex-col h-full min-h-0">
+                            <label class="block text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-2.5 shrink-0">Preview WhatsApp</label>
+                            <div class="wa-preview-bg rounded-xl border border-mi-border shadow-inner flex-1 overflow-y-auto relative p-3 md:p-5 min-h-[300px] lg:min-h-0">
+                                <div class="bg-white p-3.5 md:p-5 rounded-xl rounded-tl-sm shadow-[0_1px_2px_rgba(0,0,0,0.1)] text-xs md:text-[13px] text-gray-800 whitespace-pre-wrap font-sans max-w-full break-words" id="waPreviewText" style="line-height: 1.5;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="bg-white px-4 py-3 flex gap-2 border-t border-mi-border shrink-0">
+                    <button type="button" onclick="copyWhatsAppReport()" class="flex-1 rounded-xl border border-[#B8D9D2] px-4 py-2 bg-[#E8F3F0] text-sm font-bold text-[#124F47] hover:bg-[#D9EEE8]"><i class="fa-regular fa-copy mr-2"></i> Salin Pesan</button>
+                    <button type="button" onclick="shareToWhatsApp()" class="flex-1 rounded-xl px-4 py-2 bg-[#25D366] hover:bg-[#1DA851] text-sm font-bold text-white"><i class="fa-brands fa-whatsapp mr-2"></i> Share WhatsApp</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE NAV -->
+    <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-mi-border shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-40 px-1 py-1.5 flex justify-between items-center pb-[calc(env(safe-area-inset-bottom)+6px)] gap-1">
+        <button onclick="switchTab('riwayat')" id="nav-riwayat" class="flex flex-col items-center justify-center w-[20%] py-1 rounded-xl text-mi-primary bg-mi-soft font-semibold transition-all">
+            <i class="fa-regular fa-clock text-lg md:text-xl mb-1"></i><span class="text-[9px] md:text-[10px]">Riwayat</span>
+        </button>
+        <button onclick="switchTab('rekap')" id="nav-rekap" class="flex flex-col items-center justify-center w-[20%] py-1 rounded-xl text-gray-400 font-medium hover:text-mi-primary hover:bg-[#F0F7F5] transition-all">
+            <i class="fa-solid fa-table-list text-lg md:text-xl mb-1"></i><span class="text-[9px] md:text-[10px]">Mutabaah</span>
+        </button>
+        <button onclick="switchTab('fardhu')" id="nav-fardhu" class="flex flex-col items-center justify-center w-[20%] py-1 rounded-xl text-gray-400 font-medium hover:text-mi-primary hover:bg-[#F0F7F5] transition-all">
+            <i class="fa-solid fa-mosque text-lg md:text-xl mb-1"></i><span class="text-[9px] md:text-[10px]">Fardhu</span>
+        </button>
+        <button onclick="switchTab('analisa')" id="nav-analisa" class="flex flex-col items-center justify-center w-[20%] py-1 rounded-xl text-gray-400 font-medium hover:text-mi-primary hover:bg-[#F0F7F5] transition-all">
+            <i class="fa-solid fa-chart-simple text-lg md:text-xl mb-1"></i><span class="text-[9px] md:text-[10px]">Analisa</span>
+        </button>
+        <div class="relative w-[20%] flex justify-center">
+            <button onclick="toggleMobileMenu('menu-export', 'nav-export')" id="nav-export" class="w-full flex flex-col items-center py-1 rounded-xl text-gray-400 font-medium hover:text-mi-primary hover:bg-[#F0F7F5] transition-all">
+                <i class="fa-solid fa-ellipsis-h text-lg md:text-xl mb-1"></i><span class="text-[9px] md:text-[10px]">Lainnya</span>
+            </button>
+            <div id="menu-export" class="mobile-submenu absolute bottom-full mb-3 right-0 bg-white border border-mi-border rounded-xl shadow-lg flex-col w-32 overflow-hidden">
+                <button onclick="openWhatsAppModal(); toggleMobileMenu('menu-export', 'nav-export')" class="px-4 py-2.5 text-left text-xs font-semibold hover:bg-green-50 text-green-600 border-b border-mi-border"><i class="fa-brands fa-whatsapp mr-2"></i>Bagikan</button>
+                <button onclick="exportData('excel'); toggleMobileMenu('menu-export', 'nav-export')" class="px-4 py-2.5 text-left text-xs text-[#18794E] font-semibold hover:bg-[#E8F3F0] border-b border-mi-border"><i class="fa-solid fa-file-excel mr-2"></i>Excel</button>
+                <button onclick="exportData('pdf'); toggleMobileMenu('menu-export', 'nav-export')" class="px-4 py-2.5 text-left text-xs text-[#BE123C] font-semibold hover:bg-[#FFF1F2]"><i class="fa-solid fa-file-pdf mr-2"></i>PDF</button>
+            </div>
+        </div>
+    </nav>
+    <div id="mobile-menu-overlay" onclick="closeAllMobileMenus()" class="fixed inset-0 z-30 hidden"></div>
+
+    <script>
+        // ============================================================
+        // KONFIGURASI API REKAP MUTABAAH
+        // Isi dengan URL deployment Google Apps Script Web App.
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnVbmga2Ue9tRdWUJaCIN3vnVs7AdL5Cl3dNO85nAY4Sl_fk84FLnwrqVsRflkeD55Pw/exec';
+        const FARDHU_KEYS = ['subuh', 'dzuhur', 'ashar', 'maghrib', 'isya'];
+        const DISIPLIN_KEYS = ['waktu', 'berpakaian', 'belajar', 'ibadah', 'bersikap', 'lingkungan'];
+        const SUNNAH_KEYS = ['dhuha', 'tahajud', 'puasa', 'ma_surat_pagi', 'ma_surat_petang'];
+        const AKTIVITAS_KEYS = ['tilawah', 'hafalan', 'olahraga', 'ngobrol_ortu'];
+
+        let studentsMaster = [];
+        let mutabaahMaster = [];
+        let currentFilteredData = [];
+        let currentSummary = {};
+        let unrecordedFardhu = [];
+        let kesimpulanTextUntukDisalin = "";
+        let masterClasses = [];
+        let isRefreshingData = false;
+
+        let state = {
+            isDataLoaded: false,
+            tab: 'riwayat',
+            modes: { riwayat: 'ringkas', rekap: 'ringkas', fardhu: 'ringkas' },
+            pg: { riwayat: { page: 1, limit: 25 }, rekap: { page: 1, limit: 25 }, fardhu: { page: 1, limit: 25 } },
+            charts: { distribusi: null, kelas: null, fardhuAnalisis: null }
+        };
+        let waFormat = 'format_1';
+
+        async function apiRequest(action, data = {}) {
+            if (!APPS_SCRIPT_URL || !APPS_SCRIPT_URL.trim()) {
+                throw new Error('APPS_SCRIPT_URL belum dikonfigurasi. Isi dengan URL deployment Google Apps Script Web App.');
+            }
+            let response;
+            try {
+                response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action, ...data })
+                });
+            } catch (error) {
+                console.error('Rekap Mutabaah API network error:', error);
+                throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet, URL Web App, dan pengaturan deployment.');
+            }
+            const responseText = await response.text();
+            if (!responseText) throw new Error('Server tidak mengembalikan respons.');
+            let result;
+            try { result = JSON.parse(responseText); }
+            catch (error) {
+                console.error('Respons API bukan JSON:', responseText.slice(0, 300));
+                throw new Error('Respons Web App tidak valid. Pastikan URL mengarah ke deployment /exec dan akses deployment sesuai.');
+            }
+            if (!response.ok) throw new Error(`Permintaan API gagal (HTTP ${response.status}).`);
+            if (!result || result.status !== 'success') {
+                throw new Error((result && result.message) || 'Terjadi kesalahan pada server.');
+            }
+            return result;
+        }
+
+        function valueFromRow(row, keys, fallback = '') {
+            for (const key of keys) {
+                if (row && row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+            }
+            return fallback;
+        }
+
+        function normalizeDateOnly(value) {
+            if (value === null || value === undefined || value === '') return '';
+            if (typeof value === 'string') {
+                const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        }
+
+        function toAppStudent(row) {
+            const id = String(valueFromRow(row, ['SiswaID', 'SISWA_ID', 'StudentID', 'ID'], '')).trim();
+            const name = String(valueFromRow(row, ['Nama Lengkap', 'NamaLengkap', 'Nama Siswa', 'Nama', 'NAMA'], '')).trim();
+            const classId = String(valueFromRow(row, ['ClassID', 'CLASS_ID', 'ID_KELAS'], '')).trim();
+            const cls = masterClasses.find(c => String(c.id) === classId);
+            return {
+                id, name, classId,
+                className: cls ? cls.name : String(valueFromRow(row, ['Nama Kelas', 'Kelas'], '')),
+                status: String(valueFromRow(row, ['Status', 'STATUS'], '')).trim()
+            };
+        }
+
+        function normalizeActivityValue(value) {
+            if (value === null || value === undefined || value === '') return '';
+            if (typeof value === 'object') {
+                try { return JSON.stringify(value); } catch (e) { return ''; }
+            }
+            return String(value);
+        }
+
+        function toAppRecord(row) {
+            const fardhu = {};
+            FARDHU_KEYS.forEach(key => { fardhu[key] = normalizeActivityValue(valueFromRow(row, [key.toUpperCase(), key], '')); });
+            const disiplin = {
+                waktu: normalizeActivityValue(valueFromRow(row, ['WAKTU'], '')),
+                berpakaian: normalizeActivityValue(valueFromRow(row, ['BERPAKAIAN'], '')),
+                belajar: normalizeActivityValue(valueFromRow(row, ['BELAJAR'], '')),
+                ibadah: normalizeActivityValue(valueFromRow(row, ['IBADAH'], '')),
+                bersikap: normalizeActivityValue(valueFromRow(row, ['BERSIKAP'], '')),
+                lingkungan: normalizeActivityValue(valueFromRow(row, ['LINGKUNGAN'], ''))
+            };
+            const sunnah = {
+                dhuha: normalizeActivityValue(valueFromRow(row, ['DHUHA'], '')),
+                tahajud: normalizeActivityValue(valueFromRow(row, ['TAHAJUD'], '')),
+                puasa: normalizeActivityValue(valueFromRow(row, ['PUASA'], '')),
+                ma_surat_pagi: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PAGI', 'MA_SURAT_PAGI'], '')),
+                ma_surat_petang: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PETANG', 'MA_SURAT_PETANG'], ''))
+            };
+            const studentId = String(valueFromRow(row, ['SiswaID', 'SISWA_ID', 'studentId'], '')).trim();
+            return {
+                id: String(valueFromRow(row, ['MUTABAAH_ID', 'MutabaahID', 'id'], '')).trim(),
+                studentId,
+                classId: String(valueFromRow(row, ['ID_KELAS', 'ClassID', 'CLASS_ID'], '')).trim(),
+                date: normalizeDateOnly(valueFromRow(row, ['TANGGAL', 'Tanggal', 'date'], '')),
+                fardhu, disiplin, sunnah,
+                // Sheet saat ini tidak menyediakan kolom terpisah yang setara dengan aktivitas UI ini.
+                // Jangan mengarang nilai: fitur aktivitas akan menerima string kosong sampai tersedia di database.
+                aktivitas: { tilawah: '', hafalan: '', olahraga: '', ngobrol_ortu: '' },
+                refleksi: String(valueFromRow(row, ['REFLEKSI_HARIAN', 'Refleksi Harian'], '') || ''),
+                status: String(valueFromRow(row, ['STATUS'], '') || ''),
+                verifikasiGuru: valueFromRow(row, ['VERIFIKASI_GURU'], ''),
+                verifikasiOleh: valueFromRow(row, ['VERIFIKASI_OLEH'], ''),
+                verifikasiPada: valueFromRow(row, ['VERIFIKASI_PADA'], ''),
+                catatanGuru: valueFromRow(row, ['CATATAN_GURU'], '')
+            };
+        }
+
+        async function loadRekapMutabaahData(forceRefresh = false) {
+            if (isRefreshingData) return;
+            isRefreshingData = true;
+            const refreshButton = document.getElementById('btnRefreshData');
+            if (refreshButton) { refreshButton.disabled = true; refreshButton.classList.add('opacity-60', 'cursor-wait'); }
+            try {
+                const masterResponse = await apiRequest('getMasterRekapMutabaah', { forceRefresh });
+                const masterData = masterResponse.data || {};
+                const rawClasses = Array.isArray(masterData.classes) ? masterData.classes : [];
+                masterClasses = rawClasses.map(c => ({
+                    id: String(valueFromRow(c, ['ClassID', 'classId', 'id'], '')).trim(),
+                    name: String(valueFromRow(c, ['Nama Kelas', 'NamaKelas', 'name'], '')).trim(),
+                    tingkat: valueFromRow(c, ['Tingkat'], ''),
+                    status: valueFromRow(c, ['Status'], '')
+                })).filter(c => c.id && c.name);
+                studentsMaster = (Array.isArray(masterData.siswa) ? masterData.siswa : [])
+                    .map(toAppStudent)
+                    .filter(s => s.id && s.name && (!s.status || !/nonaktif|inactive|alumni|pindah|keluar/i.test(s.status)));
+                const classSelect = document.getElementById('filterKelas');
+                if (classSelect) {
+                    const previous = classSelect.value || 'all';
+                    classSelect.innerHTML = '<option value="all">Semua Kelas</option>';
+                    masterClasses.forEach(c => {
+                        const option = document.createElement('option');
+                        option.value = c.name;
+                        option.textContent = c.name;
+                        classSelect.appendChild(option);
+                    });
+                    if ([...classSelect.options].some(o => o.value === previous)) classSelect.value = previous;
+                }
+
+                const recordsResponse = await apiRequest('getDataRekapMutabaah', { forceRefresh });
+                const rawRecords = Array.isArray(recordsResponse.data?.records) ? recordsResponse.data.records : [];
+                const studentIds = new Set(studentsMaster.map(s => s.id));
+                mutabaahMaster = rawRecords
+                    .map(toAppRecord)
+                    .filter(r => r.studentId && studentIds.has(r.studentId) && r.date);
+                state.isDataLoaded = true;
+                if (typeof applyFilters === 'function') applyFilters();
+                else if (typeof renderApp === 'function') renderApp();
+            } catch (error) {
+                console.error('Gagal memuat Rekap Mutabaah:', error);
+                if (window.Swal) await Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Memuat Data',
+                    text: error.message || 'Data Rekap Mutabaah tidak dapat dimuat.'
+                });
+                else alert(error.message || 'Data Rekap Mutabaah tidak dapat dimuat.');
+            } finally {
+                isRefreshingData = false;
+                if (refreshButton) { refreshButton.disabled = false; refreshButton.classList.remove('opacity-60', 'cursor-wait'); }
+            }
+        }
+
+        function formatDateYYYYMMDD(date) {
+            return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        }
+        function formatIndo(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(`${String(dateStr).slice(0,10)}T12:00:00`);
+            return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+        }
+        function formatShort(dateStr) {
+            const d = new Date(`${String(dateStr).slice(0,10)}T12:00:00`);
+            if (Number.isNaN(d.getTime())) return '-';
+            const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+            return `${d.getDate()} ${days[d.getDay()]}`;
+        }
+        function generateFileName(ext) {
+            const sDate = document.getElementById('filterStartDate').value;
+            const eDate = document.getElementById('filterEndDate').value;
+            const period = (sDate === eDate) ? sDate : `${sDate}_sd_${eDate}`;
+            const sub = state.modes[state.tab] ? `_${state.modes[state.tab]}` : '';
+            return `Rekap_Mutabaah_${state.tab}${sub}_${period}.${ext}`;
+        }
+
+        function refreshData() { return loadRekapMutabaahData(true); }
+        window.refreshData = refreshData;
+        // ============================================================
+        // PARSERS
+        // ============================================================
+        function parseFardhu(val) {
+            if (!val || val === 'belum_diisi') return { status: 'belum_diisi', tempat: null };
+            let raw = String(val).toLowerCase();
+            if (raw.startsWith('{')) {
+                try { 
+                    let obj = JSON.parse(raw); 
+                    return { status: obj.status||'belum_diisi', tempat: obj.status==='berjamaah'?obj.tempat:null }; 
+                } catch(e){}
+            }
+            if (raw.includes('|')) {
+                let p = raw.split('|'); 
+                return { status: p[0]||'belum_diisi', tempat: p[0]==='berjamaah'?p[1]:null };
+            }
+            return { status: raw, tempat: null };
+        }
+        function parseAkt(val) {
+            if(!val) return { dilakukan:false };
+            if(typeof val === 'string' && val.startsWith('{')) {
+                try { return JSON.parse(val); } catch(e){}
+            }
+            return { dilakukan: val==='ya' || val===true };
+        }
+
+        const fardhuDisplayMap = { 'subuh': 'S', 'dzuhur': 'D', 'ashar': 'A', 'maghrib': 'M', 'isya': 'I' };
+        
+        function getFardhuIconSAMI(waktu, st) {
+            let label = fardhuDisplayMap[waktu];
+            let bg = 'bg-slate-100 text-slate-400 border-slate-300 border-dashed';
+            let title = 'Belum Diisi';
+            
+            if(st === 'berjamaah') { bg = 'bg-emerald-100 text-emerald-700 border-emerald-200 border-solid'; title='Berjamaah'; }
+            else if(st === 'munfarid') { bg = 'bg-amber-100 text-amber-700 border-amber-200 border-solid'; title='Munfarid'; }
+            else if(st === 'haid') { bg = 'bg-purple-100 text-purple-700 border-purple-200 border-solid'; title='Haid'; }
+            else if(st === 'tidak_shalat') { bg = 'bg-rose-100 text-rose-700 border-rose-200 border-solid'; title='Tidak Shalat'; }
+            
+            return `<div class="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold border ${bg}" title="${waktu.charAt(0).toUpperCase() + waktu.slice(1)} - ${title}">${label}</div>`;
+        }
+
+        function getFardhuBadge(st) {
+            if(st==='berjamaah') return `<span class="badge badge-berjamaah">Berjamaah</span>`;
+            if(st==='munfarid') return `<span class="badge badge-munfarid">Munfarid</span>`;
+            if(st==='haid') return `<span class="badge badge-haid">Haid</span>`;
+            if(st==='tidak_shalat') return `<span class="badge badge-tidak">Tidak</span>`;
+            return `<span class="badge badge-belum">Kosong</span>`;
+        }
+        
+        function getFardhuInitialInfo(st) {
+            if(st==='berjamaah') return { c: 'bg-emerald-100 text-emerald-700', l: 'B', name: 'Berjamaah' };
+            if(st==='munfarid') return { c: 'bg-amber-100 text-amber-700', l: 'M', name: 'Munfarid' };
+            if(st==='haid') return { c: 'bg-purple-100 text-purple-700', l: 'H', name: 'Haid' };
+            if(st==='tidak_shalat') return { c: 'bg-rose-100 text-rose-700', l: 'T', name: 'Tidak Shalat' };
+            return { c: 'bg-slate-100 text-slate-400 border border-slate-300 border-dashed', l: 'X', name: 'Belum Diisi' };
+        }
+
+        function toggleMobileMenu(menuId, buttonId) {
+            const menu = document.getElementById(menuId);
+            const overlay = document.getElementById('mobile-menu-overlay');
+            const isActive = menu.classList.contains('active');
+            
+            closeAllMobileMenus(); 
+
+            if(!isActive) {
+                menu.classList.add('active');
+                if (overlay) overlay.classList.remove('hidden');
+                
+                const btn = document.getElementById(buttonId);
+                if (btn) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-mi-primary', 'font-bold');
+                }
+            }
+        }
+
+        function closeAllMobileMenus() {
+            document.querySelectorAll('.mobile-submenu').forEach(m => m.classList.remove('active'));
+            document.getElementById('mobile-menu-overlay').classList.add('hidden');
+            ['nav-export'].forEach(id => {
+                let el = document.getElementById(id);
+                if(el && state.tab!=='export') el.classList.replace('text-mi-primary', 'text-gray-400');
+            });
+        }
+
+        // ============================================================
+        // CORE LOGIC (FILTER & CALCULATE)
+        // ============================================================
+        function initFilterUI() {
+            const clsSel = document.getElementById('filterKelas');
+            CLASS_LIST.forEach(c => { clsSel.innerHTML += `<option value="${c}">${c}</option>`; });
+            
+            // Set default periode ke Hari Ini (today)
+            document.getElementById('filterPeriode').value = 'today';
+            handlePeriodChange(); // Mengatur startDate dan endDate otomatis
+        }
+
+        function handlePeriodChange() {
+            const p = document.getElementById('filterPeriode').value;
+            const s = document.getElementById('filterStartDate');
+            const e = document.getElementById('filterEndDate');
+            s.disabled = p !== 'custom'; e.disabled = p !== 'custom';
+            
+            let now = new Date();
+            if(p === 'today') { s.value = formatDateYYYYMMDD(now); e.value = s.value; }
+            else if(p === 'this_week') { 
+                let d = now.getDay()||7; 
+                let mon = new Date(now); mon.setDate(now.getDate()-d+1);
+                s.value = formatDateYYYYMMDD(mon); e.value = formatDateYYYYMMDD(now);
+            }
+            else if(p === 'this_month') {
+                s.value = formatDateYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1));
+                e.value = formatDateYYYYMMDD(now);
+            }
+        }
+        
+        function resetFilter() {
+            document.getElementById('filterPeriode').value = 'today';
+            handlePeriodChange();
+            document.getElementById('filterKelas').value = 'all';
+            document.getElementById('filterStatusShalat').value = 'all';
+            document.getElementById('filterWaktuShalat').value = 'all';
+            document.getElementById('filterStatusPengisian').value = 'all';
+            document.getElementById('filterSearch').value = '';
+            
+            state.isDataLoaded = false;
+            document.getElementById('initial-state').classList.remove('hidden');
+            document.getElementById('initial-state').classList.add('flex');
+            document.getElementById('tab-contents-container').classList.add('hidden');
+            document.getElementById('cardsOverlay').classList.remove('hidden');
+            ['cardTotalSiswa','cardHariPeriode','cardSudahMengisi','cardBelumMengisi','cardAvgBerjamaah','cardAvgDisiplin','cardTotalAktivitas','cardPersentase'].forEach(id => document.getElementById(id).innerText = '-');
+        }
+
+        function getDatesInRange(startStr, endStr) {
+            let dates = [];
+            let s = new Date(startStr); let e = new Date(endStr);
+            for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)) {
+                if(d.getDay()!==0 && d.getDay()!==6) dates.push(formatDateYYYYMMDD(d));
+            }
+            return dates;
+        }
+
+        function applyFilters() {
+            document.getElementById('initial-state').classList.add('hidden');
+            document.getElementById('initial-state').classList.remove('flex');
+            document.getElementById('tab-contents-container').classList.add('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('loading-state').classList.add('flex');
+            
+            setTimeout(() => {
+                const sDate = document.getElementById('filterStartDate').value;
+                const eDate = document.getElementById('filterEndDate').value;
+                const cls = document.getElementById('filterKelas').value;
+                const search = document.getElementById('filterSearch').value.toLowerCase();
+                const fStat = document.getElementById('filterStatusShalat').value;
+                const isiStat = document.getElementById('filterStatusPengisian').value;
+                
+                if(!sDate || !eDate) {
+                    Swal.fire('Oops', 'Pilih rentang tanggal!', 'warning');
+                    document.getElementById('loading-state').classList.add('hidden');
+                    return;
+                }
+
+                const dates = getDatesInRange(sDate, eDate);
+                let validStudents = studentsMaster.filter(s => 
+                    (cls === 'all' || s.className === cls) && 
+                    (search === '' || s.name.toLowerCase().includes(search))
+                );
+
+                let rawFiltered = [];
+                validStudents.forEach(s => {
+                    dates.forEach(d => {
+                        let rec = mutabaahMaster.find(m => m.studentId === s.id && m.date === d);
+                        if(rec) {
+                            rawFiltered.push({...rec, studentName: s.name, className: s.className, _isEmpty: false});
+                        } else {
+                            rawFiltered.push({studentId: s.id, studentName: s.name, className: s.className, date: d, _isEmpty: true});
+                        }
+                    });
+                });
+
+                if(fStat !== 'all' && state.tab === 'fardhu') {
+                    if (state.modes.fardhu === 'harian') {
+                        let w = document.getElementById('filterWaktuShalat').value;
+                        if (w === 'all') {
+                            let validStudentIds = new Set();
+                            rawFiltered.forEach(r => {
+                                if(!r._isEmpty) {
+                                    FARDHU_KEYS.forEach(k => {
+                                        if(parseFardhu(r.fardhu[k]).status === fStat) validStudentIds.add(r.studentId);
+                                    });
+                                }
+                            });
+                            rawFiltered = rawFiltered.filter(r => validStudentIds.has(r.studentId));
+                        } else {
+                            rawFiltered = rawFiltered.filter(r => !r._isEmpty && parseFardhu(r.fardhu[w]).status === fStat);
+                        }
+                    } else {
+                        let validStudentIds = new Set();
+                        rawFiltered.forEach(r => {
+                            if(!r._isEmpty) {
+                                FARDHU_KEYS.forEach(k => {
+                                    if(parseFardhu(r.fardhu[k]).status === fStat) validStudentIds.add(r.studentId);
+                                });
+                            }
+                        });
+                        rawFiltered = rawFiltered.filter(r => validStudentIds.has(r.studentId));
+                    }
+                }
+                
+                if(isiStat !== 'all' && state.tab === 'riwayat' && state.modes.riwayat === 'ringkas') {
+                    if(isiStat === 'sudah') rawFiltered = rawFiltered.filter(r => !r._isEmpty);
+                    if(isiStat === 'belum') rawFiltered = rawFiltered.filter(r => r._isEmpty);
+                }
+
+                currentFilteredData = rawFiltered;
+                calculateSummary(validStudents.length, dates);
+                
+                state.isDataLoaded = true;
+                state.pg.riwayat.page = 1; state.pg.rekap.page = 1; state.pg.fardhu.page = 1;
+                
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('loading-state').classList.remove('flex');
+                document.getElementById('cardsOverlay').classList.add('hidden');
+                document.getElementById('tab-contents-container').classList.remove('hidden');
+                
+                updateUI();
+            }, 500);
+        }
+
+        function calculateSummary(totSiswa, dates) {
+            let totHari = dates.length;
+            let totExpected = totSiswa * totHari;
+            
+            let terisi = 0; let bj = 0; let disYa = 0; let disTot = 0; let aktTot = 0;
+            let stuMap = {};
+            let classMap = {};
+            unrecordedFardhu = [];
+
+            currentFilteredData.forEach(r => {
+                if(!stuMap[r.studentId]) {
+                    stuMap[r.studentId] = { 
+                        id: r.studentId, name: r.studentName, cls: r.className, terisi: 0, 
+                        fardhu:{berjamaah:0,munfarid:0,haid:0,tidak:0,belum:0}, 
+                        fardhuTimes: {
+                            subuh: {bj:0, mn:0, haid:0, tidak:0, belum:0},
+                            dzuhur: {bj:0, mn:0, haid:0, tidak:0, belum:0},
+                            ashar: {bj:0, mn:0, haid:0, tidak:0, belum:0},
+                            maghrib: {bj:0, mn:0, haid:0, tidak:0, belum:0},
+                            isya: {bj:0, mn:0, haid:0, tidak:0, belum:0}
+                        },
+                        dates:{} 
+                    };
+                }
+                if(!classMap[r.className]) classMap[r.className] = { siswa: new Set(), terisi: 0, expected: 0 };
+                
+                classMap[r.className].siswa.add(r.studentId);
+                
+                if(!r._isEmpty) {
+                    terisi++;
+                    stuMap[r.studentId].terisi++;
+                    stuMap[r.studentId].dates[r.date] = r;
+                    classMap[r.className].terisi++;
+                    
+                    FARDHU_KEYS.forEach(k => {
+                        let st = parseFardhu(r.fardhu[k]).status;
+                        if(st==='berjamaah') { bj++; stuMap[r.studentId].fardhu.berjamaah++; stuMap[r.studentId].fardhuTimes[k].bj++; }
+                        else if(st==='munfarid') { stuMap[r.studentId].fardhu.munfarid++; stuMap[r.studentId].fardhuTimes[k].mn++; }
+                        else if(st==='haid') { stuMap[r.studentId].fardhu.haid++; stuMap[r.studentId].fardhuTimes[k].haid++; }
+                        else if(st==='tidak_shalat') { stuMap[r.studentId].fardhu.tidak++; stuMap[r.studentId].fardhuTimes[k].tidak++; }
+                        else { stuMap[r.studentId].fardhu.belum++; stuMap[r.studentId].fardhuTimes[k].belum++; }
+                    });
+                    DISIPLIN_KEYS.forEach(k => { disTot++; if(r.disiplin[k]==='ya') disYa++; });
+                    ['tilawah','hafalan','olahraga','ngobrol_ortu'].forEach(k => { if(parseAkt(r.aktivitas[k]).dilakukan) aktTot++; });
+                } else {
+                    stuMap[r.studentId].dates[r.date] = { _isEmpty: true };
+                    FARDHU_KEYS.forEach(k => {
+                        stuMap[r.studentId].fardhu.belum++;
+                        stuMap[r.studentId].fardhuTimes[k].belum++;
+                    });
+                }
+            });
+
+            // Belum Mengisi Fardhu formatting (One date per student)
+            Object.keys(stuMap).forEach(sId => {
+                const s = stuMap[sId];
+                dates.forEach(d => {
+                    const r = s.dates[d];
+                    let missingWaktu = [];
+                    if (!r || r._isEmpty) {
+                        missingWaktu = [...FARDHU_KEYS];
+                    } else {
+                        FARDHU_KEYS.forEach(k => {
+                            if (parseFardhu(r.fardhu[k]).status === 'belum_diisi') {
+                                missingWaktu.push(k);
+                            }
+                        });
+                    }
+                    if (missingWaktu.length > 0) {
+                        unrecordedFardhu.push({
+                            name: s.name,
+                            cls: s.cls,
+                            date: d,
+                            missing: missingWaktu
+                        });
+                    }
+                });
+            });
+
+            // Calculate class expected
+            Object.keys(classMap).forEach(k => { classMap[k].expected = classMap[k].siswa.size * totHari; });
+
+            // Completeness Calculation
+            let compData = [];
+            let totalClasses = Object.keys(classMap).length;
+            let completeClasses = 0; let incompleteClasses = 0; let totalMissingDays = 0;
+            
+            Object.keys(classMap).sort().forEach(c => {
+                let cm = classMap[c];
+                let expected = cm.expected;
+                let isi = cm.terisi;
+                let missing = expected - isi;
+                let pct = expected > 0 ? (isi / expected) * 100 : 0;
+                let status = pct === 100 ? 'Lengkap' : 'Belum Lengkap';
+                
+                if (status === 'Lengkap') completeClasses++;
+                else incompleteClasses++;
+                totalMissingDays += missing;
+
+                let bdiStudents = [];
+                cm.siswa.forEach(sId => {
+                    if(!stuMap[sId]) return;
+                    let stuDates = stuMap[sId].dates;
+                    let missingDatesForStu = [];
+                    dates.forEach(d => {
+                        if (!stuDates[d] || stuDates[d]._isEmpty) {
+                            missingDatesForStu.push(d);
+                        }
+                    });
+                    if (missingDatesForStu.length > 0) {
+                        bdiStudents.push({ name: stuMap[sId].name, missingDates: missingDatesForStu });
+                    }
+                });
+
+                compData.push({
+                    className: c, expected: expected, filled: isi, missing: missing, pct: pct, status: status,
+                    bdiStudents: bdiStudents, uniqueBdiCount: bdiStudents.length
+                });
+            });
+
+            const getPred = (pct) => {
+                if (pct < 0) return { label: 'Uzur', c: 'bg-purple-100 text-purple-700 border-purple-200' };
+                if (pct >= 95) return { label: 'Sangat Baik', c: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+                if (pct >= 90) return { label: 'Baik', c: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+                if (pct >= 80) return { label: 'Cukup', c: 'bg-amber-100 text-amber-700 border-amber-200' };
+                return { label: 'Perlu Pembinaan', c: 'bg-rose-100 text-rose-700 border-rose-200' };
+            };
+
+            const recapSiswaArr = Object.values(stuMap).map(s => {
+                let totChance = 0; let totDone = 0; let totHaid = 0;
+                FARDHU_KEYS.forEach(k => {
+                    let st = s.fardhuTimes[k];
+                    let chance = st.bj + st.mn + st.tidak;
+                    let done = st.bj + st.mn;
+                    totChance += chance;
+                    totDone += done;
+                    totHaid += st.haid;
+                    st.chance = chance;
+                    st.done = done;
+                });
+                s.totChance = totChance;
+                s.totDone = totDone;
+                s.totHaid = totHaid;
+                s.pctFardhu = totChance > 0 ? (totDone / totChance) * 100 : (totHaid > 0 ? -1 : 0);
+                s.predFardhu = getPred(s.pctFardhu);
+                return s;
+            });
+
+            currentSummary = {
+                totSiswa, totHari, totExpected, terisi, belum: totExpected - terisi,
+                pct: totExpected > 0 ? (terisi/totExpected)*100 : 0,
+                avgBj: terisi > 0 ? Math.round(bj/terisi) : 0,
+                avgDis: disTot > 0 ? (disYa/disTot)*100 : 0,
+                totAkt: aktTot, dates,
+                recapSiswa: recapSiswaArr,
+                rekapKelas: classMap,
+                distFardhu: [0,0,0,0,0], 
+                completeness: { data: compData, totalClasses, complete: completeClasses, incomplete: incompleteClasses, totalMissingDays }
+            };
+            
+            currentSummary.recapSiswa.forEach(s => {
+                currentSummary.distFardhu[0] += s.fardhu.berjamaah;
+                currentSummary.distFardhu[1] += s.fardhu.munfarid;
+                currentSummary.distFardhu[2] += s.fardhu.haid;
+                currentSummary.distFardhu[3] += s.fardhu.tidak;
+                currentSummary.distFardhu[4] += s.fardhu.belum;
+            });
+        }
+
+        // ============================================================
+        // UI & RENDERERS
+        // ============================================================
+        function switchTab(t) {
+            state.tab = t;
+            closeAllMobileMenus();
+            
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${t}`).classList.add('active');
+            
+            ['nav-riwayat','nav-rekap','nav-fardhu','nav-analisa','nav-export'].forEach(id => {
+                let el = document.getElementById(id);
+                if(el) el.classList.replace('text-mi-primary', 'text-gray-400');
+                if(el) el.classList.replace('bg-mi-soft', 'bg-transparent');
+                if(el) el.classList.replace('font-semibold', 'font-medium');
+            });
+            if(t!=='export' && document.getElementById(`nav-${t}`)) {
+                let el = document.getElementById(`nav-${t}`);
+                el.classList.replace('text-gray-400', 'text-mi-primary');
+                el.classList.replace('bg-transparent', 'bg-mi-soft');
+                el.classList.replace('font-medium', 'font-semibold');
+            }
+
+            ['riwayat','rekap','analisa','fardhu'].forEach(id => {
+                document.getElementById(`content-${id}`).classList.replace('flex','hidden') || document.getElementById(`content-${id}`).classList.replace('block','hidden');
+            });
+            
+            let cEl = document.getElementById(`content-${t}`);
+            cEl.classList.remove('hidden');
+            if(t==='analisa') cEl.classList.add('block'); else cEl.classList.add('flex');
+
+            document.querySelector('.filter-general').style.display = t==='analisa' ? 'none' : 'block';
+            document.querySelector('.filter-fardhu-only').style.display = t==='fardhu' ? 'block' : 'none';
+            document.querySelector('.filter-fardhu-harian-only').style.display = (t==='fardhu' && state.modes.fardhu==='harian') ? 'block' : 'none';
+            document.querySelector('.filter-status-pengisian-only').style.display = (t==='riwayat' && state.modes.riwayat === 'ringkas') ? 'block' : 'none';
+
+            if(state.isDataLoaded) updateUI();
+        }
+
+        function setMode(tab, m) {
+            state.modes[tab] = m;
+            
+            let btns = [];
+            if(tab === 'riwayat') btns = ['ringkas', 'detail'];
+            else if (tab === 'rekap') btns = ['ringkas', 'harian', 'belum'];
+            else if (tab === 'fardhu') btns = ['ringkas', 'harian', 'analisis', 'belum'];
+
+            btns.forEach(btnType => {
+                let el = document.getElementById(`btn-${tab}-${btnType}`);
+                if (el) {
+                    el.className = (m === btnType) ? 'px-4 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all bg-mi-primary text-white shadow-sm whitespace-nowrap' 
+                                                   : 'px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all bg-mi-soft text-mi-text2 hover:text-mi-primary whitespace-nowrap';
+                }
+            });
+            
+            if (tab === 'riwayat') {
+                if (m === 'detail') document.getElementById('legendaRiwayat').classList.replace('hidden', 'flex');
+                else document.getElementById('legendaRiwayat').classList.replace('flex', 'hidden');
+                
+                document.querySelector('.filter-status-pengisian-only').style.display = m === 'ringkas' ? 'block' : 'none';
+            }
+            
+            if(tab==='fardhu') document.querySelector('.filter-fardhu-harian-only').style.display = m==='harian' ? 'block' : 'none';
+            
+            state.pg[tab].page = 1;
+            if(state.isDataLoaded) {
+                if(tab==='fardhu' && (m === 'harian' || m === 'ringkas')) applyFilters(); 
+                else updateUI();
+            }
+        }
+
+        function updateUI() {
+            renderCards();
+            if(state.tab === 'riwayat') renderRiwayat();
+            else if(state.tab === 'rekap') renderRekap();
+            else if(state.tab === 'fardhu') renderFardhu();
+            else if(state.tab === 'analisa') renderAnalisa();
+        }
+
+        function renderCards() {
+            const cs = currentSummary;
+            document.getElementById('cardTotalSiswa').innerText = cs.totSiswa;
+            document.getElementById('cardHariPeriode').innerText = cs.totHari;
+            document.getElementById('cardSudahMengisi').innerText = cs.terisi;
+            document.getElementById('cardBelumMengisi').innerText = cs.belum;
+            document.getElementById('cardPersentase').innerText = cs.pct.toFixed(1)+'%';
+            document.getElementById('cardAvgBerjamaah').innerText = cs.avgBj;
+            document.getElementById('cardAvgDisiplin').innerText = cs.avgDis.toFixed(1)+'%';
+            document.getElementById('cardTotalAktivitas').innerText = cs.totAkt;
+        }
+
+        function renderPaginated(tab, data, renderFn, headHtml) {
+            const tbody = document.getElementById(`tbody-${tab}`);
+            const empty = document.getElementById(`empty-${tab}`);
+            if(data.length === 0) {
+                empty.classList.remove('hidden'); tbody.innerHTML = '';
+                document.getElementById(`pg-info-${tab}`).innerText = `0 data`;
+                return;
+            }
+            empty.classList.add('hidden');
+            if(headHtml) document.getElementById(`thead-${tab}`).innerHTML = headHtml;
+
+            let lim = state.pg[tab].limit; let pg = state.pg[tab].page;
+            let start = (pg-1)*lim; let end = start+lim;
+            let slice = data.slice(start, end);
+            
+            document.getElementById(`pg-info-${tab}`).innerText = `Menampilkan ${start+1}-${Math.min(end, data.length)} dari ${data.length}`;
+            document.getElementById(`pg-page-${tab}`).innerText = pg;
+            
+            tbody.innerHTML = slice.map((r,i) => renderFn(r, start+i)).join('');
+        }
+
+        function changePageLimit(tab, v) { state.pg[tab].limit = parseInt(v); state.pg[tab].page=1; updateUI(); }
+        function changePage(tab, dir) {
+            let dataLen = 0;
+            if(tab === 'riwayat') dataLen = currentFilteredData.length;
+            else if (tab === 'rekap') {
+                if(state.modes.rekap === 'belum') dataLen = currentSummary.completeness.data.reduce((acc, curr) => acc + curr.bdiStudents.length, 0);
+                else dataLen = currentSummary.recapSiswa.length;
+            } else if (tab === 'fardhu') {
+                if(state.modes.fardhu === 'belum') dataLen = unrecordedFardhu.length;
+                else if (state.modes.fardhu === 'harian') dataLen = currentFilteredData.length;
+                else dataLen = currentSummary.recapSiswa.length;
+            }
+            let max = Math.ceil(dataLen / state.pg[tab].limit) || 1;
+            state.pg[tab].page = Math.max(1, Math.min(max, state.pg[tab].page + dir));
+            updateUI();
+        }
+
+        // --- RENDER RIWAYAT ---
+        function renderRiwayat() {
+            let data = [...currentFilteredData].sort((a,b)=> new Date(b.date)-new Date(a.date));
+            if(state.modes.riwayat === 'ringkas') {
+                renderPaginated('riwayat', data, (r,i) => `
+                    <tr class="table-row-hover" onclick="showDetailModal('${r.studentId}', '${r.date}')">
+                        <td class="p-3 md:p-4 text-xs md:text-sm text-mi-text2">${i+1}</td>
+                        <td class="p-3 md:p-4 text-xs md:text-sm font-bold">${formatIndo(r.date)}</td>
+                        <td class="p-3 md:p-4 text-xs md:text-sm font-bold text-mi-text1">${r.studentName}</td>
+                        <td class="p-3 md:p-4 text-xs md:text-sm text-mi-text2">${r.className}</td>
+                        <td class="p-3 md:p-4">${!r._isEmpty ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">Sudah Mengisi</span>' : '<span class="bg-rose-100 text-rose-700 px-2 py-1 rounded text-xs font-bold">Belum Mengisi</span>'}</td>
+                    </tr>
+                `, `<tr><th class="p-3 md:p-4 text-left text-xs font-bold text-mi-text2 uppercase">No</th><th class="p-3 md:p-4 text-left text-xs font-bold text-mi-text2 uppercase">Tanggal</th><th class="p-3 md:p-4 text-left text-xs font-bold text-mi-text2 uppercase">Nama</th><th class="p-3 md:p-4 text-left text-xs font-bold text-mi-text2 uppercase">Kelas</th><th class="p-3 md:p-4 text-left text-xs font-bold text-mi-text2 uppercase">Status</th></tr>`);
+            } else {
+                renderPaginated('riwayat', data, (r,i) => {
+                    let fHtml = '-'; let dHtml = '-'; let sHtml = '-'; let aHtml = '-'; let ref = '-';
+                    if(!r._isEmpty) {
+                        fHtml = `<div class="flex gap-1">` + FARDHU_KEYS.map(k=>getFardhuIconSAMI(k, parseFardhu(r.fardhu[k]).status)).join('') + `</div>`;
+                        dHtml = `<span class="font-bold text-mi-primary">${DISIPLIN_KEYS.filter(k=>r.disiplin[k]==='ya').length}/6</span>`;
+                        sHtml = `<span class="font-bold text-amber-600">${SUNNAH_KEYS.filter(k=>r.sunnah[k]==='ya').length}</span>`;
+                        
+                        const aBoxes = AKTIVITAS_KEYS.map(k => {
+                            const akt = parseAkt(r.aktivitas[k]);
+                            if(akt.dilakukan) {
+                                if(k==='tilawah') return `<div class="w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold bg-emerald-500 text-white" title="Tilawah">T</div>`;
+                                if(k==='hafalan') return `<div class="w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white" title="Hafalan">H</div>`;
+                                if(k==='olahraga') return `<div class="w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold bg-orange-500 text-white" title="Olahraga">O</div>`;
+                                if(k==='ngobrol_ortu') return `<div class="w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold bg-purple-500 text-white" title="Ngobrol">N</div>`;
+                            }
+                            return `<div class="w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold bg-slate-100 text-transparent border border-slate-300" title="Belum">-</div>`;
+                        }).join('');
+                        aHtml = `<div class="flex gap-1 justify-center">${aBoxes}</div>`;
+                        ref = r.refleksi ? (r.refleksi.length>20 ? r.refleksi.substring(0,20)+'...' : r.refleksi) : '-';
+                    } else {
+                        aHtml = `<div class="flex gap-1 justify-center">` + AKTIVITAS_KEYS.map(k => `<div class="w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold bg-slate-100 text-transparent border border-slate-300">-</div>`).join('') + `</div>`;
+                    }
+                    return `<tr class="table-row-hover" onclick="showDetailModal('${r.studentId}', '${r.date}')">
+                        <td class="p-3 text-xs text-mi-text2">${i+1}</td>
+                        <td class="p-3 text-xs font-bold">${formatShort(r.date)}</td>
+                        <td class="p-3 text-xs font-bold truncate max-w-[120px]">${r.studentName}</td>
+                        <td class="p-3">${fHtml}</td><td class="p-3 text-center">${dHtml}</td><td class="p-3 text-center">${sHtml}</td><td class="p-3 text-center">${aHtml}</td>
+                        <td class="p-3 text-[10px] text-mi-text2 italic">${ref}</td>
+                    </tr>`;
+                }, `<tr><th class="p-3 text-left text-[10px] font-bold text-mi-text2 uppercase">No</th><th class="p-3 text-left text-[10px] font-bold text-mi-text2 uppercase">Tgl</th><th class="p-3 text-left text-[10px] font-bold text-mi-text2 uppercase">Nama</th><th class="p-3 text-left text-[10px] font-bold text-mi-text2 uppercase">Shalat Fardhu<div class="text-[9px] font-normal normal-case opacity-70 leading-tight">(Subuh, Dzuhur, Ashar, Maghrib, Isya)</div></th><th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase">Disiplin</th><th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase">Sunnah</th><th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase">Akt</th><th class="p-3 text-left text-[10px] font-bold text-mi-text2 uppercase">Refleksi</th></tr>`);
+            }
+        }
+
+        // --- RENDER REKAP ---
+        function renderRekap() {
+            let data = [...currentSummary.recapSiswa].sort((a,b)=>a.cls.localeCompare(b.cls) || a.name.localeCompare(b.name));
+            if(state.modes.rekap === 'ringkas') {
+                renderPaginated('rekap', data, (r,i) => {
+                    let pct = currentSummary.totHari>0 ? (r.terisi/currentSummary.totHari)*100 : 0;
+                    let bCol = pct>=90 ? 'bg-emerald-500' : (pct>=75 ? 'bg-mi-primary' : 'bg-rose-500');
+                    return `<tr class="table-row-hover" onclick="showRekapSiswaModal('${r.id}')">
+                        <td class="p-3 text-sm sticky left-0 bg-white">${i+1}</td>
+                        <td class="p-3 text-sm font-bold sticky left-10 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] truncate max-w-[150px]">${r.name}</td>
+                        <td class="p-3 text-xs text-mi-text2 text-center">${r.cls}</td>
+                        <td class="p-3 text-sm font-bold text-center bg-slate-50">${currentSummary.totHari}</td>
+                        <td class="p-3 text-sm font-bold text-center text-emerald-600">${r.terisi}</td>
+                        <td class="p-3 text-sm font-bold text-center text-rose-500">${currentSummary.totHari - r.terisi}</td>
+                        <td class="p-3 text-sm">
+                            <div class="flex items-center gap-2"><span class="font-bold w-10 text-right">${pct.toFixed(0)}%</span>
+                            <div class="w-20 h-1.5 bg-slate-200 rounded-full"><div class="h-full ${bCol} rounded-full" style="width:${pct}%"></div></div></div>
+                        </td>
+                    </tr>`;
+                }, `<tr><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase sticky left-0 bg-mi-bg/95">No</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase sticky left-10 bg-mi-bg/95 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Nama</th><th class="p-3 text-center text-xs font-bold text-mi-text2 uppercase">Kelas</th><th class="p-3 text-center text-xs font-bold text-mi-text2 uppercase bg-slate-100">Target Hari</th><th class="p-3 text-center text-xs font-bold text-emerald-600 uppercase">Sudah Mengisi</th><th class="p-3 text-center text-xs font-bold text-rose-600 uppercase">Belum Mengisi</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Persentase Pengisian</th></tr>`);
+            } else if (state.modes.rekap === 'harian') {
+                let ths = currentSummary.dates.map(d => `<th class="p-2 text-center text-[9px] font-bold text-mi-text2 uppercase border-r">${formatShort(d)}</th>`).join('');
+                let head = `<tr><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase sticky left-0 bg-mi-bg/95 z-10 w-10">No</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase sticky left-10 bg-mi-bg/95 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Nama</th><th class="p-3 text-center text-xs font-bold text-mi-text2 uppercase border-r">Kelas</th><th class="p-3 text-center text-xs font-bold text-indigo-600 uppercase bg-indigo-50/50 border-r">Total Terisi</th>${ths}</tr>`;
+                
+                renderPaginated('rekap', data, (r,i) => {
+                    let totalTerisi = 0;
+                    let tds = currentSummary.dates.map(d => {
+                        let isIsi = r.dates[d] && !r.dates[d]._isEmpty;
+                        if(isIsi) totalTerisi++;
+                        let inner = isIsi ? `<i class="fa-solid fa-check text-emerald-500 bg-emerald-50 rounded p-1"></i>` : `<span class="text-slate-300">-</span>`;
+                        return `<td class="p-2 text-center border-r" onclick="showDetailModal('${r.id}', '${d}')">${inner}</td>`;
+                    }).join('');
+                    return `<tr class="table-row-hover"><td class="p-3 text-xs sticky left-0 bg-white z-10">${i+1}</td><td class="p-3 text-xs font-bold sticky left-10 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] truncate max-w-[120px]">${r.name}</td><td class="p-3 text-xs text-center border-r">${r.cls}</td><td class="p-3 text-sm text-center font-bold text-indigo-600 bg-indigo-50/20 border-r">${totalTerisi}</td>${tds}</tr>`;
+                }, head);
+            } else if (state.modes.rekap === 'belum') {
+                let bdiStudents = [];
+                currentSummary.completeness.data.forEach(c => {
+                    c.bdiStudents.forEach(stu => {
+                        bdiStudents.push({name: stu.name, cls: c.className, missing: stu.missingDates});
+                    });
+                });
+                renderPaginated('rekap', bdiStudents, (r, i) => `
+                    <tr class="table-row-hover" onclick="showClassCompletenessDetail('${r.cls}')">
+                        <td class="p-3 text-sm">${i+1}</td>
+                        <td class="p-3 text-sm font-bold">${r.name}</td>
+                        <td class="p-3 text-xs text-mi-text2">${r.cls}</td>
+                        <td class="p-3 text-sm font-bold text-rose-600">${r.missing.length} Hari</td>
+                        <td class="p-3 text-xs text-slate-500">${r.missing.map(d => formatIndo(d)).join(', ')}</td>
+                        <td class="p-3 text-sm"><button class="text-xs text-mi-primary font-bold"><i class="fa-solid fa-eye"></i> Detail Kelas</button></td>
+                    </tr>
+                `, `<tr><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">No</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Nama</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Kelas</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Jumlah Kosong</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Tanggal Kosong</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Aksi</th></tr>`);
+            }
+        }
+
+        // --- RENDER FARDHU ---
+        function renderFardhu() {
+            document.getElementById('fardhu-table-container').classList.add('hidden');
+            document.getElementById('fardhu-analisis-container').classList.add('hidden');
+            document.getElementById('pg-container-fardhu').classList.add('hidden');
+
+            if (state.modes.fardhu === 'analisis') {
+                document.getElementById('fardhu-analisis-container').classList.remove('hidden');
+                
+                let dist = [currentSummary.distFardhu[0], currentSummary.distFardhu[1], currentSummary.distFardhu[2], currentSummary.distFardhu[3], currentSummary.distFardhu[4]];
+                if(state.charts.fardhuAnalisis) state.charts.fardhuAnalisis.destroy();
+                state.charts.fardhuAnalisis = new Chart(document.getElementById('chartFardhuAnalisis').getContext('2d'), {
+                    type: 'bar',
+                    data: { labels: ['Berjamaah','Munfarid','Haid','Tidak','Kosong'], datasets: [{ label: 'Distribusi', data: dist, backgroundColor: ['#10B981','#F59E0B','#8B5CF6','#F43F5E','#94A3B8'], borderRadius:4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display:false } } }
+                });
+
+                let tbody = '';
+                FARDHU_KEYS.forEach(w => {
+                    let bj=0, mn=0, hd=0, tdk=0, blm=0;
+                    currentFilteredData.forEach(r => {
+                        let st = (!r._isEmpty && r.fardhu) ? parseFardhu(r.fardhu[w]).status : 'belum_diisi';
+                        if(st==='berjamaah') bj++; else if(st==='munfarid') mn++; else if(st==='haid') hd++; else if(st==='tidak_shalat') tdk++; else blm++;
+                    });
+                    tbody += `<tr class="hover:bg-slate-50"><td class="py-2 font-bold text-slate-700 uppercase">${w}</td><td class="py-2 text-center text-emerald-600">${bj}</td><td class="py-2 text-center text-amber-600">${mn}</td><td class="py-2 text-center text-purple-600">${hd}</td><td class="py-2 text-center text-rose-600">${tdk}</td><td class="py-2 text-center text-slate-400">${blm}</td></tr>`;
+                });
+                document.getElementById('tbody-fardhu-analisis').innerHTML = tbody;
+                return;
+            }
+
+            document.getElementById('fardhu-table-container').classList.remove('hidden');
+            document.getElementById('pg-container-fardhu').classList.remove('hidden');
+
+            if(state.modes.fardhu === 'ringkas') {
+                let data = [...currentSummary.recapSiswa].sort((a,b)=>a.cls.localeCompare(b.cls) || a.name.localeCompare(b.name));
+                renderPaginated('fardhu', data, (r,i) => `
+                    <tr class="table-row-hover" onclick="showFardhuDetailModal('${r.id}')">
+                        <td class="p-3 text-sm sticky left-0 bg-white">${i+1}</td>
+                        <td class="p-3 text-sm font-bold sticky left-10 md:left-12 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] truncate max-w-[150px]">${r.name}</td>
+                        <td class="p-3 text-xs text-mi-text2 text-center">${r.cls}</td>
+                        <td class="p-3 text-sm font-bold text-center bg-indigo-50/50 text-indigo-700">${r.totChance}</td>
+                        <td class="p-3 text-sm font-bold text-center text-emerald-600 bg-emerald-50/50">${r.fardhu.berjamaah}</td>
+                        <td class="p-3 text-sm font-bold text-center text-amber-600 bg-amber-50/50">${r.fardhu.munfarid}</td>
+                        <td class="p-3 text-sm font-bold text-center text-purple-600 bg-purple-50/50">${r.fardhu.haid}</td>
+                        <td class="p-3 text-sm font-bold text-center text-rose-600 bg-rose-50/50">${r.fardhu.tidak}</td>
+                        <td class="p-3 text-sm font-bold text-center text-slate-400 bg-slate-50/50">${r.fardhu.belum}</td>
+                        <td class="p-3 text-sm font-bold text-center bg-emerald-50 text-emerald-700 border-l border-mi-border">${r.totDone}</td>
+                    </tr>
+                `, `<tr><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase sticky left-0 bg-mi-bg/95">No</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase sticky left-10 md:left-12 bg-mi-bg/95 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Nama</th><th class="p-3 text-center text-xs font-bold text-mi-text2 uppercase">Kelas</th><th class="p-3 text-center text-xs font-bold text-indigo-700 uppercase">Total Kesempatan</th><th class="p-3 text-center text-xs font-bold text-emerald-600 uppercase">Jamaah</th><th class="p-3 text-center text-xs font-bold text-amber-600 uppercase">Munfarid</th><th class="p-3 text-center text-xs font-bold text-purple-600 uppercase">Haid</th><th class="p-3 text-center text-xs font-bold text-rose-600 uppercase">Tidak</th><th class="p-3 text-center text-xs font-bold text-slate-500 uppercase">Kosong</th><th class="p-3 text-center text-xs font-bold text-emerald-700 uppercase border-l border-mi-border">Terlaksana</th></tr>`);
+            } else if (state.modes.fardhu === 'harian') {
+                let data = [...currentSummary.recapSiswa].sort((a,b)=>a.cls.localeCompare(b.cls) || a.name.localeCompare(b.name));
+                
+                let head = `<tr>
+                    <th class="p-3 text-left text-[10px] font-bold text-mi-text2 uppercase sticky left-0 bg-mi-bg/95 z-20">No</th>
+                    <th class="p-3 text-left text-[10px] font-bold text-mi-text2 uppercase sticky left-10 md:left-12 bg-mi-bg/95 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Nama Siswa</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase border-r border-mi-border">Kelas</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase cursor-pointer hover:text-mi-primary">Subuh</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase cursor-pointer hover:text-mi-primary">Dzuhur</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase cursor-pointer hover:text-mi-primary">Ashar</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase cursor-pointer hover:text-mi-primary">Maghrib</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase cursor-pointer hover:text-mi-primary border-r border-mi-border">Isya</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase border-r border-mi-border bg-slate-50">Total</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase bg-slate-50">%</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase">Predikat</th>
+                    <th class="p-3 text-center text-[10px] font-bold text-mi-text2 uppercase">Aksi</th>
+                </tr>`;
+
+                renderPaginated('fardhu', data, (r, i) => {
+                    const renderCell = (k) => `<td class="p-3 text-center text-slate-700 text-xs">${r.fardhuTimes[k].done}/${r.fardhuTimes[k].chance}</td>`;
+                    return `<tr class="table-row-hover" onclick="showFardhuDetailModal('${r.id}')">
+                        <td class="p-3 text-xs sticky left-0 bg-white z-10 border-b border-mi-border">${i+1}</td>
+                        <td class="p-3 text-xs font-bold sticky left-10 md:left-12 bg-white z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] truncate max-w-[150px] border-b border-mi-border">${r.name}</td>
+                        <td class="p-3 text-xs text-center border-r border-mi-border border-b">${r.cls}</td>
+                        ${renderCell('subuh')}${renderCell('dzuhur')}${renderCell('ashar')}${renderCell('maghrib')}<td class="p-3 text-center text-slate-700 text-xs border-r border-mi-border border-b">${r.fardhuTimes.isya.done}/${r.fardhuTimes.isya.chance}</td>
+                        <td class="p-3 text-center font-bold text-slate-700 border-r border-mi-border border-b bg-slate-50/50">${r.totDone}/${r.totChance}</td>
+                        <td class="p-3 text-center font-bold text-mi-primary border-b border-mi-border bg-slate-50/50">${r.pctFardhu < 0 ? 'Uzur' : r.pctFardhu.toFixed(1)+'%'}</td>
+                        <td class="p-3 text-center border-b border-mi-border"><span class="inline-block px-2 py-1 rounded text-[10px] font-bold border ${r.predFardhu.c}">${r.predFardhu.label}</span></td>
+                        <td class="p-3 text-center border-b border-mi-border"><button onclick="event.stopPropagation(); showFardhuDetailModal('${r.id}')" class="bg-white border border-slate-200 text-mi-primary px-3 py-1 rounded-lg text-[10px] uppercase font-bold hover:bg-mi-primary hover:text-white transition-all shadow-sm">Detail</button></td>
+                    </tr>`;
+                }, head);
+            } else if (state.modes.fardhu === 'belum') {
+                renderPaginated('fardhu', unrecordedFardhu, (r, i) => {
+                    const badges = r.missing.map(m => `<span class="inline-flex items-center justify-center w-5 h-5 rounded bg-slate-100 border border-slate-300 text-slate-500 text-[10px] font-bold mr-1" title="${m.charAt(0).toUpperCase() + m.slice(1)}">${fardhuDisplayMap[m]}</span>`).join('');
+                    
+                    return `
+                    <tr class="table-row-hover">
+                        <td class="p-3 text-sm">${i+1}</td>
+                        <td class="p-3 text-sm font-medium">${formatIndo(r.date)}</td>
+                        <td class="p-3 text-sm font-bold">${r.name}</td>
+                        <td class="p-3 text-xs text-mi-text2">${r.cls}</td>
+                        <td class="p-3">${badges}</td>
+                        <td class="p-3 text-sm font-bold text-rose-500">${r.missing.length}</td>
+                    </tr>
+                `}, `<tr><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">No</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Tanggal</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Nama Siswa</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Kelas</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Waktu Kosong</th><th class="p-3 text-left text-xs font-bold text-mi-text2 uppercase">Jumlah Shalat yang Belum Terisi</th></tr>`);
+            }
+        }
+
+        // --- RENDER ANALISA ---
+        function renderAnalisa() {
+            if(state.charts.distribusi) state.charts.distribusi.destroy();
+            state.charts.distribusi = new Chart(document.getElementById('chartDistribusi').getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: ['Berjamaah','Munfarid','Haid','Tidak Shalat','Belum Diisi'], datasets: [{ data: currentSummary.distFardhu, backgroundColor: ['#10B981','#F59E0B','#8B5CF6','#F43F5E','#94A3B8'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: {font:{size:10}} } }, cutout: '70%' }
+            });
+
+            let clsLbl = []; let clsData = []; let clsBody = '';
+            Object.keys(currentSummary.rekapKelas).sort().forEach(k => {
+                let d = currentSummary.rekapKelas[k];
+                let p = d.expected > 0 ? (d.terisi/d.expected)*100 : 0;
+                clsLbl.push(k); clsData.push(p);
+                clsBody += `<tr><td class="p-3 font-bold">${k}</td><td class="p-3 text-center">${d.siswa.size}</td><td class="p-3 text-center font-bold text-mi-primary">${p.toFixed(1)}%</td></tr>`;
+            });
+            
+            const tbodyAnalisaKelas = document.getElementById('tbody-analisa-kelas');
+            if (tbodyAnalisaKelas) {
+                tbodyAnalisaKelas.innerHTML = clsBody;
+            }
+
+            if(state.charts.kelas) state.charts.kelas.destroy();
+            state.charts.kelas = new Chart(document.getElementById('chartKelas').getContext('2d'), {
+                type: 'bar',
+                data: { labels: clsLbl, datasets: [{ label: '% Pengisian', data: clsData, backgroundColor: '#124F47', borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+            
+            renderCompletenessSection();
+
+            let tot = currentSummary.totExpected; let isi = currentSummary.terisi;
+            document.getElementById('analisaKesimpulan').innerHTML = `Berdasarkan filter, terdapat <strong>${currentSummary.totSiswa} siswa</strong> dengan target <strong>${tot} jurnal</strong>. Jurnal yang terisi sebanyak <strong>${isi} (${currentSummary.pct.toFixed(1)}%)</strong>. Rata-rata kedisiplinan tercapai <strong>${currentSummary.avgDis.toFixed(1)}%</strong>.`;
+            
+            // Render Daftar Kelas BDI
+            const comp = currentSummary.completeness;
+            const bdiListEl = document.getElementById('analisaDaftarBdiList');
+            const bdiContainer = document.getElementById('analisaDaftarBdi');
+            kesimpulanTextUntukDisalin = `KESIMPULAN REKAP MUTABAAH\nPeriode: ${document.getElementById('filterStartDate').value} s/d ${document.getElementById('filterEndDate').value}\n\nJumlah siswa: ${currentSummary.totSiswa}\nTarget jurnal: ${tot}\nJurnal terisi: ${isi} (${currentSummary.pct.toFixed(1)}%)\nRata-rata kedisiplinan: ${currentSummary.avgDis.toFixed(1)}%\n\n`;
+
+            if(comp && comp.incomplete > 0) {
+                let listHtml = ''; let listText = "DAFTAR KELAS YANG BELUM LENGKAP:\n";
+                let idx = 1;
+                comp.data.forEach(d => {
+                    if(d.uniqueBdiCount > 0) {
+                        listHtml += `<li><strong>${d.className}</strong> &mdash; ${d.uniqueBdiCount} siswa belum mengisi.</li>`;
+                        listText += `${idx}. ${d.className} — ${d.uniqueBdiCount} siswa belum mengisi.\n`;
+                        idx++;
+                    }
+                });
+                bdiListEl.innerHTML = listHtml;
+                bdiContainer.classList.remove('hidden');
+                kesimpulanTextUntukDisalin += listText;
+            } else {
+                bdiListEl.innerHTML = '';
+                bdiContainer.classList.add('hidden');
+                kesimpulanTextUntukDisalin += "Alhamdulillah, semua kelas sudah lengkap mengisi mutabaah pada periode ini.";
+            }
+
+            let recs = [];
+            if(currentSummary.pct < 80) recs.push(`<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-2"></i> Tingkat pengisian masih di bawah 80%, perlu motivasi pengisian harian.`);
+            if(currentSummary.distFardhu[3] > (isi * 5 * 0.1)) recs.push(`<i class="fa-solid fa-circle-exclamation text-rose-500 mr-2"></i> Angka "Tidak Shalat" melebihi 10% dari total shalat. Perlu pembinaan khusus.`);
+            if(recs.length===0) recs.push(`<i class="fa-solid fa-check-circle text-emerald-500 mr-2"></i> Kinerja ibadah dan kedisiplinan terpantau baik. Pertahankan!`);
+            document.getElementById('analisaRekomendasi').innerHTML = recs.map(r=>`<li>${r}</li>`).join('');
+        }
+
+        function copyKesimpulan() {
+            if(!kesimpulanTextUntukDisalin) {
+                Swal.fire({toast:true, position:'top-end', icon:'warning', title:'Teks kosong', showConfirmButton:false, timer:1500});
+                return;
+            }
+            navigator.clipboard.writeText(kesimpulanTextUntukDisalin).then(() => {
+                Swal.fire({toast:true, position:'top-end', icon:'success', title:'Kesimpulan tersalin', showConfirmButton:false, timer:1500});
+            }).catch(err => {
+                console.error("Failed to copy", err);
+                Swal.fire({toast:true, position:'top-end', icon:'error', title:'Gagal menyalin', showConfirmButton:false, timer:1500});
+            });
+        }
+
+        function renderCompletenessSection() {
+            const comp = currentSummary.completeness;
+            if(!comp) return;
+
+            document.getElementById('cardCompTotal').innerText = comp.totalClasses;
+            document.getElementById('cardCompComplete').innerText = comp.complete;
+            document.getElementById('cardCompIncomplete').innerText = comp.incomplete;
+            document.getElementById('cardCompMissing').innerText = comp.totalMissingDays;
+
+            const tbody = document.getElementById('tbody-analisa-kelengkapan');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            comp.data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white hover:bg-mi-soft/50 transition-colors';
+                
+                let badge = row.status === 'Lengkap' 
+                    ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700">Lengkap</span>` 
+                    : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700">Belum Lengkap</span>`;
+                
+                let bdiContent = row.uniqueBdiCount > 0
+                    ? `<button onclick="showClassCompletenessDetail('${row.className}')" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors" title="Lihat Siswa BDI">${row.uniqueBdiCount} Siswa</button>`
+                    : `<span class="text-xs text-slate-400">-</span>`;
+
+                tr.innerHTML = `
+                    <td class="px-3 md:px-4 py-2 md:py-3 whitespace-nowrap text-xs font-bold text-mi-text1">${row.className}</td>
+                    <td class="px-2 md:px-4 py-2 md:py-3 whitespace-nowrap text-xs text-center text-slate-600">${row.expected}</td>
+                    <td class="px-2 md:px-4 py-2 md:py-3 whitespace-nowrap text-xs text-center font-semibold text-emerald-600">${row.filled}</td>
+                    <td class="px-2 md:px-4 py-2 md:py-3 whitespace-nowrap text-xs text-center font-semibold ${row.missing > 0 ? 'text-rose-600' : 'text-slate-400'}">${row.missing}</td>
+                    <td class="px-2 md:px-4 py-2 md:py-3 whitespace-nowrap text-center">${bdiContent}</td>
+                    <td class="px-3 md:px-4 py-2 md:py-3 whitespace-nowrap text-xs text-center font-bold text-mi-primary">${row.pct.toFixed(1)}%</td>
+                    <td class="px-2 md:px-4 py-2 md:py-3 whitespace-nowrap text-center">${badge}</td>
+                    <td class="px-3 md:px-4 py-2 md:py-3 whitespace-nowrap text-center">
+                        <button onclick="showClassCompletenessDetail('${row.className}')" class="text-[10px] font-bold text-mi-primary hover:text-mi-dark flex items-center justify-center gap-1 w-full"><i class="fa-solid fa-eye"></i> Detail</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ============================================================
+        // MODALS
+        // ============================================================
+        function showDetailModal(stuId, date) {
+            let stu = studentsMaster.find(s=>s.id===stuId);
+            let rec = mutabaahMaster.find(m=>m.studentId===stuId && m.date===date);
+            
+            document.getElementById('mdl-name').innerText = stu.name;
+            document.getElementById('mdl-class').innerText = stu.className;
+            document.getElementById('mdl-date').innerText = formatIndo(date);
+
+            let alertEl = document.getElementById('mdl-status-alert');
+            if(!rec) {
+                alertEl.className = 'p-3 rounded-xl text-sm font-bold text-center border bg-rose-50 text-rose-600 border-rose-200 block';
+                alertEl.innerText = "Siswa belum mengisi jurnal pada tanggal ini.";
+                document.getElementById('mdl-fardhu-grid').innerHTML = FARDHU_KEYS.map(k=>{
+                    let info = getFardhuInitialInfo('belum_diisi');
+                    return `<div class="flex flex-col items-center p-2 border rounded-xl bg-slate-50 text-slate-400 text-center"><span class="text-[10px] uppercase font-bold mb-1 opacity-70">${k}</span><span class="text-xs font-black leading-tight">${info.name}</span></div>`;
+                }).join('');
+                document.getElementById('mdl-disiplin-grid').innerHTML = '<span class="italic">Belum diisi</span>';
+                document.getElementById('mdl-sunnah-grid').innerHTML = '<span class="italic">Belum diisi</span>';
+                document.getElementById('mdl-aktivitas-grid').innerHTML = '<span class="italic col-span-2 text-slate-400">Belum diisi</span>';
+                document.getElementById('mdl-refleksi').innerHTML = '<span class="text-slate-400">Belum diisi</span>';
+            } else {
+                alertEl.className = 'p-3 rounded-xl text-sm font-bold text-center border bg-emerald-50 text-emerald-600 border-emerald-200 block';
+                alertEl.innerText = "Jurnal telah diisi.";
+                
+                document.getElementById('mdl-fardhu-grid').innerHTML = FARDHU_KEYS.map(k=>{
+                    let f = parseFardhu(rec.fardhu[k]);
+                    let c = 'bg-slate-50 border-slate-200 text-slate-500'; let txt = 'Kosong';
+                    if(f.status==='berjamaah'){ c='bg-emerald-50 border-emerald-200 text-emerald-700'; txt='Berjamaah'+(f.tempat?` (${f.tempat})`:''); }
+                    else if(f.status==='munfarid'){ c='bg-amber-50 border-amber-200 text-amber-700'; txt='Munfarid'; }
+                    else if(f.status==='haid'){ c='bg-purple-50 border-purple-200 text-purple-700'; txt='Haid'; }
+                    else if(f.status==='tidak_shalat'){ c='bg-rose-50 border-rose-200 text-rose-700'; txt='Tidak'; }
+                    return `<div class="flex flex-col items-center p-2 border rounded-xl ${c} text-center"><span class="text-[10px] uppercase font-bold mb-1 opacity-70">${k}</span><span class="text-xs font-black leading-tight">${txt}</span></div>`;
+                }).join('');
+
+                let disHtml = DISIPLIN_KEYS.filter(k=>rec.disiplin[k]==='ya').map(k=>`<span class="bg-teal-50 text-teal-700 px-2 py-1 rounded border border-teal-100"><i class="fa-solid fa-check mr-1"></i> ${k.toUpperCase()}</span>`).join('');
+                document.getElementById('mdl-disiplin-grid').innerHTML = `<div class="flex flex-wrap gap-2">${disHtml||'-'}</div>`;
+
+                let sunHtml = SUNNAH_KEYS.filter(k=>rec.sunnah[k]==='ya').map(k=>`<span class="bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-100"><i class="fa-solid fa-star mr-1"></i> ${k.replace(/_/g,' ').toUpperCase()}</span>`).join('');
+                document.getElementById('mdl-sunnah-grid').innerHTML = `<div class="flex flex-wrap gap-2">${sunHtml||'-'}</div>`;
+
+                let aktHtml = AKTIVITAS_KEYS.map(k=>{
+                    let a = parseAkt(rec.aktivitas[k]);
+                    if(!a.dilakukan) return `<div class="bg-slate-50 border p-2 rounded-lg text-slate-400 flex flex-col gap-1"><span class="font-bold text-[10px] uppercase">${k.replace(/_/g,' ')}</span><span class="text-xs italic">Belum</span></div>`;
+                    let desc = 'Ya';
+                    if(k==='tilawah'||k==='hafalan') desc = `${a.surat||''} (${a.ayatMulai||''}-${a.ayatSelesai||''})`;
+                    if(k==='olahraga') desc = `${Array.isArray(a.jenis)?a.jenis.join(','):a.jenis} ${a.durasi?a.durasi+'m':''}`;
+                    if(k==='ngobrol_ortu') desc = a.topik||'Ya';
+                    return `<div class="bg-blue-50 border border-blue-100 text-blue-700 p-2 rounded-lg flex flex-col gap-1"><span class="font-bold text-[10px] uppercase opacity-70">${k.replace(/_/g,' ')}</span><span class="text-xs font-bold leading-tight">${desc}</span></div>`;
+                }).join('');
+                document.getElementById('mdl-aktivitas-grid').innerHTML = aktHtml;
+
+                document.getElementById('mdl-refleksi').innerText = rec.refleksi || 'Tidak ada refleksi.';
+            }
+            document.getElementById('modalDetail').classList.remove('hidden');
+        }
+
+        function showRekapSiswaModal(stuId) {
+            let stu = currentSummary.recapSiswa.find(s=>s.id===stuId);
+            if(!stu) return;
+            document.getElementById('mdlRe-name').innerText = stu.name;
+            document.getElementById('mdlRe-class').innerText = stu.cls;
+            document.getElementById('mdlRe-period').innerText = document.getElementById('filterPeriode').options[document.getElementById('filterPeriode').selectedIndex].text;
+            document.getElementById('mdlRe-target').innerText = currentSummary.totHari;
+            document.getElementById('mdlRe-isi').innerText = stu.terisi;
+            document.getElementById('mdlRe-belum').innerText = currentSummary.totHari - stu.terisi;
+            
+            let dHtml = '';
+            currentSummary.dates.forEach(d => {
+                let rec = stu.dates[d];
+                let isIsi = rec && !rec._isEmpty;
+                let bg = isIsi ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200';
+                let ic = isIsi ? '<i class="fa-solid fa-check mr-2"></i> Sudah Mengisi' : '<i class="fa-solid fa-xmark mr-2"></i> Belum Mengisi';
+                dHtml += `<div class="flex justify-between items-center p-2 mb-2 rounded-lg border ${bg} text-xs font-bold"><span>${formatIndo(d)}</span><span>${ic}</span></div>`;
+            });
+            document.getElementById('mdlRe-datesList').innerHTML = dHtml;
+            document.getElementById('modalRekapSiswa').classList.remove('hidden');
+        }
+        
+        function showFardhuDetailModal(stuId) {
+            let stu = currentSummary.recapSiswa.find(s=>s.id===stuId);
+            if(!stu) return;
+
+            document.getElementById('modFdName').innerText = stu.name;
+            document.getElementById('modFdClass').innerText = stu.cls;
+            document.getElementById('modFdPeriod').innerText = `${formatIndo(document.getElementById('filterStartDate').value)} - ${formatIndo(document.getElementById('filterEndDate').value)}`;
+
+            document.getElementById('modFdChance').innerText = stu.totChance;
+            document.getElementById('modFdDone').innerText = stu.totDone;
+            document.getElementById('modFdMiss').innerText = stu.fardhu.tidak;
+            document.getElementById('modFdHaid').innerText = stu.totHaid;
+
+            document.getElementById('modFdWaktuGrid').innerHTML = FARDHU_KEYS.map(p => {
+                const stat = stu.fardhuTimes[p];
+                const pct = stat.chance === 0 ? 0 : (stat.done / stat.chance) * 100;
+                return `<div class="border border-slate-100 rounded-lg p-2 text-center bg-white shadow-sm"><div class="text-xs font-bold text-slate-500 mb-1 uppercase">${p}</div><div class="font-semibold text-slate-700">${stat.done}/${stat.chance}</div><div class="text-xs font-bold ${pct < 80 ? 'text-rose-500' : 'text-emerald-600'}">${pct.toFixed(1)}%</div></div>`;
+            }).join('');
+
+            let dailyHtml = '';
+            currentSummary.dates.forEach(d => {
+                const rec = stu.dates[d];
+                dailyHtml += `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="p-2 font-medium bg-slate-50 text-slate-600">${formatShort(d)}</td>`;
+                FARDHU_KEYS.forEach(p => {
+                    let info = getFardhuInitialInfo(rec && !rec._isEmpty ? parseFardhu(rec.fardhu[p]).status : '');
+                    dailyHtml += `<td class="p-2"><span title="${info.name}" class="inline-flex w-6 h-6 items-center justify-center rounded text-[10px] font-bold ${info.c} cursor-help">${info.l}</span></td>`;
+                });
+                dailyHtml += `</tr>`;
+            });
+            document.getElementById('modFdTableBody').innerHTML = dailyHtml;
+            
+            const modal = document.getElementById('modalFardhuDetail');
+            modal.classList.remove('hidden'); modal.classList.add('flex', 'modal-enter');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => modal.classList.remove('modal-enter'), 200);
+        }
+
+        function showClassCompletenessDetail(className) {
+            let data = currentSummary.completeness.data.find(d => d.className === className);
+            if(!data) return;
+
+            document.getElementById('detCompClassName').innerText = data.className;
+            document.getElementById('detCompEff').innerText = data.expected;
+            document.getElementById('detCompFilled').innerText = data.filled;
+            document.getElementById('detCompMissing').innerText = data.missing;
+            document.getElementById('detCompPct').innerText = data.pct.toFixed(1) + '%';
+            
+            document.getElementById('detCompStatusBadge').innerHTML = data.status === 'Lengkap' 
+                ? `<span class="px-3 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-700">Lengkap</span>` 
+                : `<span class="px-3 py-1 rounded-md text-xs font-bold bg-rose-100 text-rose-700">Belum Lengkap</span>`;
+
+            const bdiContainer = document.getElementById('detCompBdiList');
+            bdiContainer.innerHTML = '';
+
+            if (data.bdiStudents && data.bdiStudents.length > 0) {
+                let bdiHtml = '<div class="space-y-3">';
+                data.bdiStudents.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+                    let missedDatesStr = s.missingDates.map(d => formatShort(d)).join(', ');
+                    bdiHtml += `
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg border border-gray-100 bg-gray-50/50 gap-2">
+                            <span class="text-sm font-semibold text-mi-text1"><i class="fa-solid fa-circle-user text-gray-400 mr-1.5"></i>${s.name}</span>
+                            <div class="flex flex-col items-end w-full sm:w-auto">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 w-fit">Belum Mengisi: ${s.missingDates.length} Hari</span>
+                                <span class="text-[10px] text-gray-500 mt-1">${missedDatesStr}</span>
+                            </div>
+                        </div>`;
+                });
+                bdiHtml += '</div>';
+                bdiContainer.innerHTML = bdiHtml;
+            } else {
+                bdiContainer.innerHTML = `<div class="text-sm text-mi-text2 italic px-3 py-4 bg-gray-50 rounded-lg border border-gray-100 text-center">Seluruh siswa sudah mengisi lengkap pada periode ini. 🎉</div>`;
+            }
+
+            document.getElementById('modalClassCompleteness').classList.remove('hidden');
+        }
+
+        function closeModal(id) { 
+            const m = document.getElementById(id);
+            if(!m) return;
+            if(m.classList.contains('flex')) {
+                m.classList.add('modal-leave');
+                setTimeout(() => { m.classList.add('hidden'); m.classList.remove('modal-leave', 'flex'); document.body.style.overflow = 'auto'; }, 200);
+            } else {
+                m.classList.add('hidden'); 
+            }
+        }
+
+        // ============================================================
+        // EXPORT & SHARE WA
+        // ============================================================
+        function exportData(type) {
+            if(!state.isDataLoaded) return Swal.fire('Oops', 'Tampilkan data terlebih dahulu.', 'warning');
+            
+            let wb = type === 'excel' ? XLSX.utils.book_new() : null;
+            let doc = type === 'pdf' ? new window.jspdf.jsPDF(state.tab === 'rekap' && state.modes.rekap === 'harian' || state.tab === 'fardhu' && state.modes.fardhu === 'harian' ? 'landscape' : 'portrait') : null;
+            
+            if(type === 'pdf') {
+                doc.setFontSize(14); doc.text(`Laporan Mutabaah - ${state.tab.toUpperCase()} ${state.modes[state.tab] ? state.modes[state.tab].toUpperCase() : ''}`, 14, 15);
+                doc.setFontSize(10);
+                doc.text(`Sekolah: Mentari Ilmu | Periode: ${document.getElementById('filterStartDate').value} s.d ${document.getElementById('filterEndDate').value}`, 14, 22);
+            }
+
+            let dataToExport = []; let head = []; let body = [];
+            
+            // LOGIC RIWAYAT
+            if(state.tab === 'riwayat') {
+                let sortedData = [...currentFilteredData].sort((a,b) => new Date(b.date) - new Date(a.date));
+                if (state.modes.riwayat === 'ringkas') {
+                    head = [["No", "Tanggal", "Nama Siswa", "Kelas", "Status"]];
+                    sortedData.forEach((r, i) => {
+                        let st = r._isEmpty ? "Belum Mengisi" : "Sudah Mengisi";
+                        dataToExport.push({ "No": i+1, "Tanggal": r.date, "Nama Siswa": r.studentName, "Kelas": r.className, "Status": st });
+                        body.push([i+1, r.date, r.studentName, r.className, st]);
+                    });
+                } else {
+                    head = [["No", "Tanggal", "Nama Siswa", "Kelas", "Berjamaah/Munfarid", "Disiplin", "Sunnah", "Aktivitas", "Refleksi"]];
+                    sortedData.forEach((r, i) => {
+                        let bmj = 0, dis = 0, sun = 0, akt = 0;
+                        if(!r._isEmpty) {
+                            FARDHU_KEYS.forEach(k => { let s = parseFardhu(r.fardhu[k]).status; if(s==='berjamaah'||s==='munfarid') bmj++; });
+                            DISIPLIN_KEYS.forEach(k => { if(r.disiplin[k]==='ya') dis++; });
+                            SUNNAH_KEYS.forEach(k => { if(r.sunnah[k]==='ya') sun++; });
+                            AKTIVITAS_KEYS.forEach(k => { if(parseAkt(r.aktivitas[k]).dilakukan) akt++; });
+                        }
+                        dataToExport.push({ "No": i+1, "Tanggal": r.date, "Nama Siswa": r.studentName, "Kelas": r.className, "Shalat": `${bmj}/5`, "Disiplin": `${dis}/6`, "Sunnah": `${sun}`, "Aktivitas": `${akt}/4`, "Refleksi": r.refleksi||'-' });
+                        body.push([i+1, r.date, r.studentName, r.className, `${bmj}/5`, `${dis}/6`, `${sun}`, `${akt}/4`, r.refleksi||'-']);
+                    });
+                }
+            } 
+            // LOGIC REKAP
+            else if (state.tab === 'rekap') {
+                let sortedData = [...currentSummary.recapSiswa].sort((a,b)=>a.cls.localeCompare(b.cls) || a.name.localeCompare(b.name));
+                
+                if (state.modes.rekap === 'ringkas') {
+                    head = [["No", "Nama Siswa", "Kelas", "Target Hari", "Sudah Mengisi", "Belum Mengisi", "Persentase Pengisian"]];
+                    sortedData.forEach((r, i) => {
+                        let pct = currentSummary.totHari>0 ? ((r.terisi/currentSummary.totHari)*100).toFixed(1)+'%' : '0%';
+                        let blm = currentSummary.totHari - r.terisi;
+                        dataToExport.push({ "No": i+1, "Nama Siswa": r.name, "Kelas": r.cls, "Target Hari": currentSummary.totHari, "Sudah Mengisi": r.terisi, "Belum Mengisi": blm, "Persentase Pengisian": pct });
+                        body.push([i+1, r.name, r.cls, currentSummary.totHari, r.terisi, blm, pct]);
+                    });
+                } else if (state.modes.rekap === 'harian') {
+                    head = [["No", "Nama Siswa", "Kelas", "Total Terisi", ...currentSummary.dates]];
+                    sortedData.forEach((r, i) => {
+                        let rowObj = { "No": i+1, "Nama Siswa": r.name, "Kelas": r.cls };
+                        let rowArr = [i+1, r.name, r.cls];
+                        
+                        let totalTerisi = 0;
+                        currentSummary.dates.forEach(d => {
+                            if (r.dates[d] && !r.dates[d]._isEmpty) totalTerisi++;
+                        });
+                        rowObj["Total Terisi"] = totalTerisi;
+                        rowArr.push(totalTerisi);
+
+                        currentSummary.dates.forEach(d => {
+                            let val = (r.dates[d] && !r.dates[d]._isEmpty) ? "Sudah Diisi" : "Belum Diisi";
+                            rowObj[d] = val;
+                            rowArr.push(val);
+                        });
+                        dataToExport.push(rowObj);
+                        body.push(rowArr);
+                    });
+                } else if (state.modes.rekap === 'belum') {
+                    head = [["No", "Nama Siswa", "Kelas", "Jumlah Hari Belum Mengisi", "Tanggal Belum Mengisi"]];
+                    let bdiCounter = 1;
+                    currentSummary.completeness.data.forEach(c => {
+                        c.bdiStudents.forEach(stu => {
+                            let tgls = stu.missingDates.join(', ');
+                            dataToExport.push({ "No": bdiCounter, "Nama Siswa": stu.name, "Kelas": c.className, "Jumlah Hari Belum Mengisi": stu.missingDates.length, "Tanggal Belum Mengisi": tgls });
+                            body.push([bdiCounter, stu.name, c.className, stu.missingDates.length, tgls]);
+                            bdiCounter++;
+                        });
+                    });
+                }
+            } 
+            // LOGIC FARDHU
+            else if (state.tab === 'fardhu') {
+                if (state.modes.fardhu === 'ringkas') {
+                    head = [["No", "Nama Siswa", "Kelas", "Total Kesempatan", "Berjamaah", "Munfarid", "Haid", "Tidak Shalat", "Belum Diisi", "Terlaksana"]];
+                    let sortedData = [...currentSummary.recapSiswa].sort((a,b)=>a.cls.localeCompare(b.cls) || a.name.localeCompare(b.name));
+                    sortedData.forEach((r, i) => {
+                        dataToExport.push({ "No": i+1, "Nama Siswa": r.name, "Kelas": r.cls, "Total Kesempatan": r.totChance, "Berjamaah": r.fardhu.berjamaah, "Munfarid": r.fardhu.munfarid, "Haid": r.fardhu.haid, "Tidak Shalat": r.fardhu.tidak, "Belum Diisi": r.fardhu.belum, "Terlaksana": r.totDone });
+                        body.push([i+1, r.name, r.cls, r.totChance, r.fardhu.berjamaah, r.fardhu.munfarid, r.fardhu.haid, r.fardhu.tidak, r.fardhu.belum, r.totDone]);
+                    });
+                } else if (state.modes.fardhu === 'harian') {
+                    head = [["No", "Nama Siswa", "Kelas", "Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya", "Total Terlaksana", "Target Kesempatan", "Persentase", "Predikat"]];
+                    let data = [...currentSummary.recapSiswa].sort((a,b)=>a.cls.localeCompare(b.cls) || a.name.localeCompare(b.name));
+                    data.forEach((r, i) => {
+                        dataToExport.push({ 
+                            "No": i+1, "Nama Siswa": r.name, "Kelas": r.cls, 
+                            "Subuh": `${r.fardhuTimes.subuh.done}/${r.fardhuTimes.subuh.chance}`, 
+                            "Dzuhur": `${r.fardhuTimes.dzuhur.done}/${r.fardhuTimes.dzuhur.chance}`, 
+                            "Ashar": `${r.fardhuTimes.ashar.done}/${r.fardhuTimes.ashar.chance}`, 
+                            "Maghrib": `${r.fardhuTimes.maghrib.done}/${r.fardhuTimes.maghrib.chance}`, 
+                            "Isya": `${r.fardhuTimes.isya.done}/${r.fardhuTimes.isya.chance}`, 
+                            "Total Terlaksana": r.totDone, "Target Kesempatan": r.totChance, 
+                            "Persentase": r.pctFardhu < 0 ? 'Uzur' : r.pctFardhu.toFixed(1)+'%', 
+                            "Predikat": r.predFardhu.label 
+                        });
+                        body.push([
+                            i+1, r.name, r.cls, 
+                            `${r.fardhuTimes.subuh.done}/${r.fardhuTimes.subuh.chance}`, 
+                            `${r.fardhuTimes.dzuhur.done}/${r.fardhuTimes.dzuhur.chance}`, 
+                            `${r.fardhuTimes.ashar.done}/${r.fardhuTimes.ashar.chance}`, 
+                            `${r.fardhuTimes.maghrib.done}/${r.fardhuTimes.maghrib.chance}`, 
+                            `${r.fardhuTimes.isya.done}/${r.fardhuTimes.isya.chance}`, 
+                            r.totDone, r.totChance, 
+                            r.pctFardhu < 0 ? 'Uzur' : r.pctFardhu.toFixed(1)+'%', 
+                            r.predFardhu.label
+                        ]);
+                    });
+                } else if (state.modes.fardhu === 'analisis') {
+                    head = [["Waktu", "Berjamaah", "Munfarid", "Haid", "Tidak Shalat", "Belum Diisi"]];
+                    FARDHU_KEYS.forEach(w => {
+                        let s_bj=0, s_mn=0, s_hd=0, s_tdk=0, s_blm=0;
+                        currentFilteredData.forEach(r => {
+                            let st = (!r._isEmpty && r.fardhu) ? parseFardhu(r.fardhu[w]).status : 'belum_diisi';
+                            if(st==='berjamaah') s_bj++; else if(st==='munfarid') s_mn++; else if(st==='haid') s_hd++; else if(st==='tidak_shalat') s_tdk++; else s_blm++;
+                        });
+                        dataToExport.push({ "Waktu": w.toUpperCase(), "Berjamaah": s_bj, "Munfarid": s_mn, "Haid": s_hd, "Tidak Shalat": s_tdk, "Belum Diisi": s_blm });
+                        body.push([w.toUpperCase(), s_bj, s_mn, s_hd, s_tdk, s_blm]);
+                    });
+                } else if (state.modes.fardhu === 'belum') {
+                    head = [["No", "Nama Siswa", "Kelas", "Tanggal", "Waktu Shalat yang Belum Diisi", "Jumlah Kekosongan"]];
+                    unrecordedFardhu.forEach((r, i) => {
+                        let w_str = r.missing.map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(', ');
+                        dataToExport.push({ "No": i+1, "Nama Siswa": r.name, "Kelas": r.cls, "Tanggal": r.date, "Waktu": w_str, "Jumlah": r.missing.length });
+                        body.push([i+1, r.name, r.cls, r.date, w_str, r.missing.length]);
+                    });
+                }
+            } 
+            // LOGIC ANALISA
+            else if (state.tab === 'analisa') {
+                head = [["Kelas", "Total Siswa", "Persentase Pengisian"]];
+                Object.keys(currentSummary.rekapKelas).sort().forEach(k => {
+                    let d = currentSummary.rekapKelas[k];
+                    let p = d.expected > 0 ? (d.terisi/d.expected)*100 : 0;
+                    dataToExport.push({ "Kelas": k, "Total Siswa": d.siswa.size, "Persentase Pengisian": p.toFixed(1)+'%' });
+                    body.push([k, d.siswa.size, p.toFixed(1)+'%']);
+                });
+            }
+
+            // FILE EXECUTION
+            const filename = generateFileName(type);
+            
+            if(dataToExport.length === 0 || body.length === 0) {
+                if(type === 'pdf') { doc.text("Tidak ada data yang sesuai dengan filter.", 14, 30); doc.save(filename); }
+                return Swal.fire('Info', 'Data kosong atau tidak ditemukan.', 'info');
+            }
+
+            if(type === 'excel') {
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                XLSX.utils.book_append_sheet(wb, ws, "Mutabaah");
+                XLSX.writeFile(wb, filename);
+            } else if (type === 'pdf') {
+                doc.autoTable({ head: head, body: body, startY: 28, styles:{fontSize:7, cellPadding:2}, theme:'grid', headStyles: { fillColor: [18, 79, 71] } });
+                doc.save(filename);
+            }
+        }
+
+        let currentWAText = "";
+
+        function getWaChecked(id) {
+            const el = document.getElementById(id);
+            return el ? el.checked : false;
+        }
+
+        function openWhatsAppModal() {
+            if(!state.isDataLoaded) {
+                Swal.fire('Oops', 'Tampilkan data terlebih dahulu.', 'warning'); return;
+            }
+            document.getElementById('modalWhatsApp').classList.remove('hidden');
+            requestAnimationFrame(() => {
+                if (typeof waFormat === 'undefined' || !waFormat || (waFormat !== 'format_1' && waFormat !== 'format_2')) { waFormat = 'format_1'; }
+                setWaFormat(waFormat);
+            });
+        }
+        
+        function setWaFormat(format) {
+            waFormat = format;
+            document.querySelectorAll('.wa-format-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-mi-primary', 'bg-mi-soft', 'text-mi-primary', 'shadow-sm');
+                btn.classList.add('border-gray-200', 'bg-white', 'text-gray-500');
+            });
+            let activeBtnId = format === 'format_1' ? 'btnWaFormat1' : 'btnWaFormat2';
+            let activeBtn = document.getElementById(activeBtnId);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-gray-200', 'bg-white', 'text-gray-500');
+                activeBtn.classList.add('active', 'border-mi-primary', 'bg-mi-soft', 'text-mi-primary', 'shadow-sm');
+            }
+            generateWhatsAppReport();
+        }
+
+        function toggleWaModeRingkas() {
+            const isRingkas = document.getElementById('cbWaModeRingkas').checked;
+            const rekapGroup = document.getElementById('waRekapGroup');
+            const nameGroup = document.getElementById('waNameGroup');
+            
+            const checkboxesToDisable = ['cbWaRekapKelas', 'cbWaBDI'];
+            if (isRingkas) {
+                if (rekapGroup) rekapGroup.classList.add('opacity-50');
+                if (nameGroup) nameGroup.classList.add('opacity-50');
+                checkboxesToDisable.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = true; });
+            } else {
+                if (rekapGroup) rekapGroup.classList.remove('opacity-50');
+                if (nameGroup) nameGroup.classList.remove('opacity-50');
+                checkboxesToDisable.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+            }
+            generateWhatsAppReport();
+        }
+
+        function toggleWaSettings() {
+            const content = document.getElementById('waSettingsContent');
+            const icon = document.getElementById('waAccordionIcon');
+            if(!content || !icon) return;
+            if(!content.classList.contains('hidden')) {
+                content.classList.add('hidden'); content.classList.remove('flex'); icon.classList.remove('rotate-180');
+            } else {
+                content.classList.remove('hidden'); content.classList.add('flex'); icon.classList.add('rotate-180');
+            }
+        }
+
+        function generateWhatsAppReport() {
+            try {
+                const startD = document.getElementById('filterStartDate') ? document.getElementById('filterStartDate').value : '';
+                const endD = document.getElementById('filterEndDate') ? document.getElementById('filterEndDate').value : '';
+                const filterKelasEl = document.getElementById('filterKelas');
+                const selectedClass = filterKelasEl ? filterKelasEl.value : 'all';
+                
+                let dateStr = "📅 Periode: Belum ditentukan";
+                if(startD && endD) dateStr = startD === endD ? `📅 Periode: ${formatIndo(startD)}` : `📅 Periode: ${formatIndo(startD)} – ${formatIndo(endD)}`;
+                
+                let text = "";
+                text += selectedClass === 'all' ? `📢 *REKAP MUTABAAH KESELURUHAN*\n` : `📢 *LAPORAN MUTABAAH KELAS ${selectedClass.toUpperCase()}*\n`;
+                text += `🏫 *SMP IT MENTARI ILMU*\n${dateStr}\n\n`;
+
+                const cr = currentSummary;
+                if (!cr || !cr.totSiswa) {
+                    text += "Data belum dimuat atau kosong.";
+                    document.getElementById('waPreviewText').innerText = text;
+                    currentWAText = text; return;
+                }
+
+                const eff = cr.totHari || 0; const tot = cr.totSiswa || 0; const tgt = cr.totExpected || 0;
+                const terisi = cr.terisi || 0; const belum = cr.belum || 0; const pct = cr.pct.toFixed(2).replace('.', ',') + '%';
+
+                const isRingkas = getWaChecked('cbWaModeRingkas');
+                const showTotal = getWaChecked('cbWaTotal'); const showTarget = getWaChecked('cbWaTarget');
+                const showTerisi = getWaChecked('cbWaTerisi'); const showPct = getWaChecked('cbWaPersentase');
+                const showDisiplin = getWaChecked('cbWaDisiplin'); const showFardhu = getWaChecked('cbWaFardhu');
+                const showRekap = !isRingkas && getWaChecked('cbWaRekapKelas');
+                const showBDI = !isRingkas && getWaChecked('cbWaBDI');
+                const showMsg = getWaChecked('cbWaPesanPenutup');
+
+                if (waFormat === 'format_1') {
+                    text += `━━━━━━━━━━━━━━━━━━\n📊 *REKAP KESELURUHAN*\n━━━━━━━━━━━━━━━━━━\n\n`;
+                    if(showTotal) text += `👥 Total Siswa: ${tot}\n`;
+                    if(showTarget) text += `🎯 Target Jurnal: ${tgt}\n`;
+                    if(showTerisi) text += `✅ Jurnal Terisi: ${terisi}\n`;
+                    if(showPct) text += `📈 Persentase Pengisian: *${pct}*\n`;
+                    if(showDisiplin) text += `⭐ Rata-rata Kedisiplinan: ${cr.avgDis.toFixed(1).replace('.', ',')}%\n`;
+                    text += `\n`;
+
+                    if(showFardhu) {
+                        text += `*Distribusi Shalat Fardhu:*\n`;
+                        text += `🕌 Berjamaah: ${cr.distFardhu[0]}\n👤 Munfarid: ${cr.distFardhu[1]}\n🌸 Haid: ${cr.distFardhu[2]}\n❌ Tidak Shalat: ${cr.distFardhu[3]}\n\n`;
+                    }
+
+                    if (showRekap) {
+                        text += `━━━━━━━━━━━━━━━━━━\n📚 *REKAP PER KELAS*\n━━━━━━━━━━━━━━━━━━\n\n`;
+                        let classesToProcess = selectedClass === 'all' ? CLASS_LIST : [selectedClass];
+                        let hasData = false;
+                        classesToProcess.forEach(c => {
+                            if (cr.rekapKelas && cr.rekapKelas[c]) {
+                                hasData = true; const kls = cr.rekapKelas[c];
+                                text += `🔹 *${c.toUpperCase()}*\n`;
+                                text += `👥 Siswa: ${kls.siswa.size} | 🎯 Target: ${kls.expected} | ✅ Terisi: ${kls.terisi} (${(kls.expected > 0 ? (kls.terisi/kls.expected)*100 : 0).toFixed(1).replace('.',',')}%)\n\n`;
+                            }
+                        });
+                        if(!hasData) text += `(Tidak ada data mutabaah kelas)\n\n`;
+                    }
+
+                    if (showBDI) {
+                        text += `━━━━━━━━━━━━━━━━━━\n⚠️ *KELAS BELUM LENGKAP*\n━━━━━━━━━━━━━━━━━━\n\n`;
+                        if(cr.completeness && cr.completeness.incomplete > 0) {
+                            let idx = 1;
+                            cr.completeness.data.forEach(d => {
+                                if(d.uniqueBdiCount > 0) {
+                                    text += `${idx}. ${d.className} — ${d.uniqueBdiCount} siswa belum mengisi.\n`;
+                                    idx++;
+                                }
+                            });
+                        } else {
+                            text += `Alhamdulillah, semua kelas sudah lengkap mengisi mutabaah.\n`;
+                        }
+                        text += `\n`;
+                    }
+                } 
+                else if (waFormat === 'format_2') {
+                    text += `━━━━━━━━━━━━━━━━━━\n\n`;
+                    let statsLine = [];
+                    if(showTotal) statsLine.push(`👥 Siswa: ${tot}`);
+                    if(showTarget) statsLine.push(`🎯 Trgt: ${tgt}`);
+                    if(showTerisi) statsLine.push(`✅ Isi: ${terisi}`);
+                    if(statsLine.length > 0) text += statsLine.join(' | ') + `\n`;
+                    
+                    let pctLine = [];
+                    if(showPct) pctLine.push(`📈 Pngsn: *${pct}*`);
+                    if(showDisiplin) pctLine.push(`⭐ Dspln: ${cr.avgDis.toFixed(1).replace('.', ',')}%`);
+                    if(pctLine.length > 0) text += pctLine.join(' | ') + `\n`;
+
+                    if(showFardhu) {
+                        text += `🕌 B:${cr.distFardhu[0]} | 👤 M:${cr.distFardhu[1]} | 🌸 H:${cr.distFardhu[2]} | ❌ T:${cr.distFardhu[3]}\n`;
+                    }
+                    text += `\n━━━━━━━━━━━━━━━━━━\n\n`;
+
+                    if (showBDI) {
+                        text += `*⚠️ Kelas Belum Lengkap:*\n`;
+                        if(cr.completeness && cr.completeness.incomplete > 0) {
+                            cr.completeness.data.forEach(d => {
+                                if(d.uniqueBdiCount > 0) text += `- ${d.className}: ${d.uniqueBdiCount} siswa\n`;
+                            });
+                        } else {
+                            text += `- Semua kelas lengkap.\n`;
+                        }
+                        text += `\n`;
+                    }
+                }
+
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+                text += `🕐 Dibuat: ${now.getDate()} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][now.getMonth()]} ${now.getFullYear()}, ${timeStr} WIB\n\n`;
+                if (showMsg) text += `Terima kasih atas kedisiplinannya. Tetap semangat menjaga rutinitas ibadah harian. 💚\n\n`;
+                text += `_Sistem Mutabaah SMP IT Mentari Ilmu_`;
+
+                currentWAText = text;
+                const previewEl = document.getElementById('waPreviewText');
+                if (previewEl) previewEl.innerText = currentWAText;
+            } catch (error) {
+                console.error("Error generating WA report:", error);
+                const previewEl = document.getElementById('waPreviewText');
+                if (previewEl) previewEl.innerText = "Preview laporan belum dapat dibuat.";
+                currentWAText = "";
+            }
+        }
+
+        function copyWhatsAppReport() {
+            if(!currentWAText) {
+                Swal.fire('Gagal', 'Tidak ada pesan yang bisa disalin.', 'warning');
+                return;
+            }
+            navigator.clipboard.writeText(currentWAText).then(() => {
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Pesan berhasil disalin', showConfirmButton: false, timer: 3000, background: '#124F47', color: '#fff', iconColor: '#34D399' });
+            }).catch(err => {
+                console.error('Gagal menyalin:', err);
+                Swal.fire('Error', 'Gagal menyalin pesan ke clipboard.', 'error');
+            });
+        }
+        function shareToWhatsApp() {
+            if(!currentWAText) {
+                Swal.fire('Gagal', 'Tidak ada pesan untuk dibagikan.', 'warning');
+                return;
+            }
+            window.open(`https://wa.me/?text=${encodeURIComponent(currentWAText)}`, '_blank');
+        }
+
+        function startClock() {
+            function updateClock() {
+                const now = new Date();
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+
+                const dayName = days[now.getDay()];
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = months[now.getMonth()];
+                const year = now.getFullYear();
+
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+
+                const timeStr = `${hours}:${minutes}:${seconds}`;
+                const dateStr = `${dayName}, ${day} ${month} ${year}`;
+
+                // Update semua elemen yang memiliki class live-time dan live-date
+                document.querySelectorAll('.live-time').forEach(el => el.textContent = timeStr);
+                document.querySelectorAll('.live-date').forEach(el => el.textContent = dateStr);
+            }
+            
+            updateClock(); // Jalankan sekali langsung
+            setInterval(updateClock, 1000); // Update setiap detik
+        }
+
+        // Pisahkan agar jam berjalan seketika saat HTML siap (tidak perlu menunggu gambar/asset eksternal load)
+        document.addEventListener('DOMContentLoaded', function() {
+            startClock();
+        });
+
+        window.onload = async function() {
+            initFilterUI();
+            await loadRekapMutabaahData(false);
+        };
+    </script>
+</body>
+</html>
