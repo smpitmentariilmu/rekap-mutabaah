@@ -200,7 +200,6 @@
                         <button onclick="exportData('pdf')" class="hidden lg:flex justify-center px-3 md:px-4 py-1.5 md:py-2 bg-[#FFF1F2] hover:bg-[#FFE4E6] text-[#BE123C] rounded-xl text-xs md:text-sm font-medium transition-colors border border-[#FFE4E6] shadow-sm items-center gap-1.5 md:gap-2" title="Export PDF sesuai Tab yang aktif">
                             <i class="fa-solid fa-file-pdf"></i> <span>PDF</span>
                         </button>
-                        <button id="btnRefreshData" onclick="refreshData()" class="hidden lg:flex justify-center px-3 md:px-4 py-1.5 md:py-2 bg-[#F5F7F6] hover:bg-[#E9EEEC] text-[#124F47] rounded-xl text-xs md:text-sm font-medium transition-colors border border-[#E5ECE9] shadow-sm items-center gap-1.5 md:gap-2" title="Muat ulang data dari spreadsheet"><i class="fa-solid fa-rotate"></i> <span>Refresh</span></button>
                         <button onclick="openWhatsAppModal()" class="hidden lg:flex w-full sm:w-auto justify-center px-4 md:px-5 py-1.5 md:py-2 bg-mi-primary hover:bg-mi-dark text-white rounded-xl text-xs md:text-sm font-medium transition-colors shadow-md items-center gap-1.5 md:gap-2">
                             <i class="fa-brands fa-whatsapp text-sm md:text-lg"></i> <span>Bagikan Laporan</span>
                         </button>
@@ -216,7 +215,10 @@
         <div class="bg-mi-surface rounded-2xl border border-mi-border card-shadow p-4 md:p-6 mb-6 md:mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-5 gap-3">
                 <h2 class="text-xs md:text-sm font-bold text-mi-text1 tracking-wide uppercase flex items-center"><i class="fa-solid fa-sliders text-mi-text2 mr-2"></i>Filter Data Mutabaah</h2>
-                <div class="flex gap-2 w-full sm:w-auto">
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <button id="btnRefreshData" onclick="refreshData()" class="flex-1 sm:flex-none justify-center px-3 md:px-4 py-1.5 md:py-2 bg-[#F5F7F6] hover:bg-[#E9EEEC] text-[#124F47] rounded-xl text-xs md:text-sm font-medium transition-colors border border-[#E5ECE9] shadow-sm items-center gap-1.5 md:gap-2 flex" title="Muat ulang data dari spreadsheet">
+                        <i class="fa-solid fa-rotate"></i> <span>Refresh</span>
+                    </button>
                     <button onclick="resetFilter()" class="flex-1 sm:flex-none justify-center text-xs md:text-sm text-[#6B7C78] hover:text-mi-primary hover:bg-[#E9EEEC] bg-[#F5F7F6] border border-[#E5ECE9] font-medium px-3 md:px-4 py-1.5 md:py-2 rounded-xl transition-colors flex items-center gap-2 shadow-sm">
                         <i class="fa-solid fa-rotate-left"></i> Reset
                     </button>
@@ -433,7 +435,7 @@
             
             <div id="loading-state" class="py-24 hidden flex-col items-center justify-center text-center">
                 <div class="loader mb-4"></div>
-                <p class="text-sm text-mi-text2 font-bold tracking-wide animate-pulse">Memproses Data...</p>
+                <p class="text-sm text-mi-text2 font-bold tracking-wide animate-pulse">Memuat data dari database...</p>
             </div>
 
             <!-- CONTENT TABS -->
@@ -1104,13 +1106,22 @@
 
         function normalizeDateOnly(value) {
             if (value === null || value === undefined || value === '') return '';
-            if (typeof value === 'string') {
-                const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+            if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;
             }
-            const date = new Date(value);
+            const text = String(value).trim();
+            // Format spreadsheet: dd/MM/yyyy (contoh 28/07/2026), dd-MM-yyyy, yyyy-MM-dd.
+            let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:$|T|\s)/);
+            if (match) return `${match[1]}-${String(match[2]).padStart(2,'0')}-${String(match[3]).padStart(2,'0')}`;
+            match = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+            if (match) return `${match[3]}-${String(match[2]).padStart(2,'0')}-${String(match[1]).padStart(2,'0')}`;
+            const date = new Date(text);
             if (Number.isNaN(date.getTime())) return '';
             return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        }
+
+        function normalizeIdForMatch(value) {
+            return String(value === null || value === undefined ? '' : value).trim();
         }
 
         function toAppStudent(row) {
@@ -1151,18 +1162,20 @@
                 ma_surat_pagi: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PAGI', 'MA_SURAT_PAGI'], '')),
                 ma_surat_petang: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PETANG', 'MA_SURAT_PETANG'], ''))
             };
-            const studentId = String(valueFromRow(row, ['SiswaID', 'SISWA_ID', 'studentId'], '')).trim();
+            // Di MUTABAAH_SISWA identitas siswa disimpan pada USER_ID, bukan SiswaID.
+            const studentId = normalizeIdForMatch(valueFromRow(row, ['USER_ID', 'User_ID', 'user_id', 'SiswaID', 'SISWA_ID', 'studentId'], ''));
             return {
                 id: String(valueFromRow(row, ['MUTABAAH_ID', 'MutabaahID', 'id'], '')).trim(),
                 studentId,
                 classId: String(valueFromRow(row, ['ID_KELAS', 'ClassID', 'CLASS_ID'], '')).trim(),
-                date: normalizeDateOnly(valueFromRow(row, ['TANGGAL', 'Tanggal', 'date'], '')),
+                date: normalizeDateOnly(valueFromRow(row, ['TANGGAL', 'Tanggal', 'tanggal', 'date'], '')),
                 fardhu, disiplin, sunnah,
                 // Sheet saat ini tidak menyediakan kolom terpisah yang setara dengan aktivitas UI ini.
                 // Jangan mengarang nilai: fitur aktivitas akan menerima string kosong sampai tersedia di database.
                 aktivitas: { tilawah: '', hafalan: '', olahraga: '', ngobrol_ortu: '' },
                 refleksi: String(valueFromRow(row, ['REFLEKSI_HARIAN', 'Refleksi Harian'], '') || ''),
-                status: String(valueFromRow(row, ['STATUS'], '') || ''),
+                status: String(valueFromRow(row, ['STATUS', 'Status', 'status'], '') || ''),
+                statusPengisian: String(valueFromRow(row, ['STATUS_PENGISIAN', 'Status Pengisian', 'STATUS', 'Status', 'status'], '') || ''),
                 verifikasiGuru: valueFromRow(row, ['VERIFIKASI_GURU'], ''),
                 verifikasiOleh: valueFromRow(row, ['VERIFIKASI_OLEH'], ''),
                 verifikasiPada: valueFromRow(row, ['VERIFIKASI_PADA'], ''),
@@ -1170,7 +1183,7 @@
             };
         }
 
-        async function loadRekapMutabaahData(forceRefresh = false) {
+        async function loadRekapMutabaahData(forceRefresh = false, applyAfterLoad = true, dateRange = null) {
             if (isRefreshingData) return;
             isRefreshingData = true;
             const refreshButton = document.getElementById('btnRefreshData');
@@ -1201,15 +1214,28 @@
                     if ([...classSelect.options].some(o => o.value === previous)) classSelect.value = previous;
                 }
 
-                const recordsResponse = await apiRequest('getDataRekapMutabaah', { forceRefresh });
+                const activeStart = dateRange && dateRange.startDate ? dateRange.startDate : (document.getElementById('filterStartDate')?.value || '');
+                const activeEnd = dateRange && dateRange.endDate ? dateRange.endDate : (document.getElementById('filterEndDate')?.value || '');
+                const recordsResponse = await apiRequest('getDataRekapMutabaah', {
+                    forceRefresh,
+                    startDate: activeStart,
+                    endDate: activeEnd
+                });
                 const rawRecords = Array.isArray(recordsResponse.data?.records) ? recordsResponse.data.records : [];
-                const studentIds = new Set(studentsMaster.map(s => s.id));
-                mutabaahMaster = rawRecords
-                    .map(toAppRecord)
-                    .filter(r => r.studentId && studentIds.has(r.studentId) && r.date);
+                const studentIds = new Set(studentsMaster.map(s => normalizeIdForMatch(s.id)));
+                const mappedRecords = rawRecords.map(toAppRecord);
+                mutabaahMaster = mappedRecords
+                    .filter(r => r.studentId && studentIds.has(normalizeIdForMatch(r.studentId)) && r.date);
+                console.info('[Rekap Mutabaah] Data berhasil dipetakan:', {
+                    totalSiswa: studentsMaster.length,
+                    totalBarisJurnalDariSheet: rawRecords.length,
+                    totalJurnalDenganUserIdDanTanggalValid: mappedRecords.filter(r => r.studentId && r.date).length,
+                    totalJurnalCocokDenganSiswa: mutabaahMaster.length,
+                    contohKolomJurnal: rawRecords.length ? Object.keys(rawRecords[0]) : []
+                });
                 state.isDataLoaded = true;
-                if (typeof applyFilters === 'function') applyFilters();
-                else if (typeof renderApp === 'function') renderApp();
+                if (applyAfterLoad) await applyFilters({ skipFetch: true });
+                return true;
             } catch (error) {
                 console.error('Gagal memuat Rekap Mutabaah:', error);
                 if (window.Swal) await Swal.fire({
@@ -1218,6 +1244,7 @@
                     text: error.message || 'Data Rekap Mutabaah tidak dapat dimuat.'
                 });
                 else alert(error.message || 'Data Rekap Mutabaah tidak dapat dimuat.');
+                return false;
             } finally {
                 isRefreshingData = false;
                 if (refreshButton) { refreshButton.disabled = false; refreshButton.classList.remove('opacity-60', 'cursor-wait'); }
@@ -1246,7 +1273,9 @@
             return `Rekap_Mutabaah_${state.tab}${sub}_${period}.${ext}`;
         }
 
-        function refreshData() { return loadRekapMutabaahData(true); }
+        function refreshData() {
+            return applyFilters({ forceRefresh: true });
+        }
         window.refreshData = refreshData;
         // ============================================================
         // PARSERS
@@ -1337,8 +1366,9 @@
         // CORE LOGIC (FILTER & CALCULATE)
         // ============================================================
         function initFilterUI() {
+            // Daftar kelas akan diisi dari sheet CLASSES setelah metadata API dimuat.
             const clsSel = document.getElementById('filterKelas');
-            CLASS_LIST.forEach(c => { clsSel.innerHTML += `<option value="${c}">${c}</option>`; });
+            if (clsSel && !clsSel.options.length) clsSel.innerHTML = '<option value="all">Semua Kelas</option>';
             
             // Set default periode ke Hari Ini (today)
             document.getElementById('filterPeriode').value = 'today';
@@ -1390,38 +1420,103 @@
             return dates;
         }
 
-        function applyFilters() {
-            document.getElementById('initial-state').classList.add('hidden');
-            document.getElementById('initial-state').classList.remove('flex');
-            document.getElementById('tab-contents-container').classList.add('hidden');
-            document.getElementById('loading-state').classList.remove('hidden');
-            document.getElementById('loading-state').classList.add('flex');
-            
-            setTimeout(() => {
+        async function applyFilters(options = {}) {
+            const initialState = document.getElementById('initial-state');
+            const tabContents = document.getElementById('tab-contents-container');
+            const loadingState = document.getElementById('loading-state');
+            const cardsOverlay = document.getElementById('cardsOverlay');
+            const actionButtons = Array.from(document.querySelectorAll(
+                '#btnRefreshData, button[onclick="resetFilter()"], button[onclick="applyFilters()"]'
+            ));
+            const originalButtonContent = new Map();
+
+            initialState.classList.add('hidden');
+            initialState.classList.remove('flex');
+            tabContents.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            loadingState.classList.add('flex');
+
+            // Spinner pada kartu ringkasan dan tombol mengikuti pola UI referensi.
+            if (cardsOverlay) {
+                cardsOverlay.classList.remove('hidden');
+                cardsOverlay.innerHTML = `
+                    <div class="flex flex-col items-center bg-white px-5 py-4 rounded-2xl shadow-[0_4px_20px_rgba(18,79,71,0.15)] border border-mi-primary/20">
+                        <div class="loader mb-2 w-8 h-8"></div>
+                        <span class="text-sm font-bold text-mi-primary mb-1">Memproses Data...</span>
+                        <span class="text-[10px] text-mi-text2">Mengambil dan menyiapkan data rekapitulasi siswa</span>
+                    </div>`;
+            }
+            actionButtons.forEach(btn => {
+                originalButtonContent.set(btn, btn.innerHTML);
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                if (btn.id === 'btnRefreshData') {
+                    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Memuat...</span>';
+                } else if (btn.getAttribute('onclick') === 'applyFilters()') {
+                    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Memuat...</span>';
+                }
+            });
+
+            const hideLoading = () => {
+                loadingState.classList.add('hidden');
+                loadingState.classList.remove('flex');
+                actionButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                    if (originalButtonContent.has(btn)) btn.innerHTML = originalButtonContent.get(btn);
+                });
+            };
+
+            try {
+                if (document.getElementById('filterPeriode').value === 'today') handlePeriodChange();
                 const sDate = document.getElementById('filterStartDate').value;
                 const eDate = document.getElementById('filterEndDate').value;
+                if (!sDate || !eDate) {
+                    if (window.Swal) await Swal.fire('Oops', 'Pilih rentang tanggal!', 'warning');
+                    else alert('Pilih rentang tanggal!');
+                    return;
+                }
+                if (sDate > eDate) {
+                    if (window.Swal) await Swal.fire('Oops', 'Tanggal Mulai tidak boleh melewati Tanggal Selesai.', 'warning');
+                    else alert('Tanggal Mulai tidak boleh melewati Tanggal Selesai.');
+                    return;
+                }
+
+                // Setiap klik Tampilkan mengambil ulang jurnal dari spreadsheet.
+                // Spinner tetap aktif sampai request API dan pemrosesan data selesai.
+                if (!options.skipFetch) {
+                    const loaded = await loadRekapMutabaahData(!!options.forceRefresh, false, { startDate: sDate, endDate: eDate });
+                    if (!loaded) return;
+                }
+
                 const cls = document.getElementById('filterKelas').value;
                 const search = document.getElementById('filterSearch').value.toLowerCase();
                 const fStat = document.getElementById('filterStatusShalat').value;
                 const isiStat = document.getElementById('filterStatusPengisian').value;
-                
-                if(!sDate || !eDate) {
-                    Swal.fire('Oops', 'Pilih rentang tanggal!', 'warning');
-                    document.getElementById('loading-state').classList.add('hidden');
-                    return;
-                }
 
                 const dates = getDatesInRange(sDate, eDate);
-                let validStudents = studentsMaster.filter(s => 
-                    (cls === 'all' || s.className === cls) && 
+                let validStudents = studentsMaster.filter(s =>
+                    (cls === 'all' || s.className === cls) &&
                     (search === '' || s.name.toLowerCase().includes(search))
                 );
 
+                // Index sekali agar pencocokan tidak menjalankan .find() berulang
+                // untuk setiap kombinasi siswa x tanggal (lebih cepat pada periode panjang).
+                const recordByStudentDate = new Map();
+                mutabaahMaster.forEach(record => {
+                    const studentKey = normalizeIdForMatch(record.studentId);
+                    const dateKey = normalizeDateOnly(record.date);
+                    if (studentKey && dateKey) {
+                        recordByStudentDate.set(`${studentKey}|${dateKey}`, record);
+                    }
+                });
+
                 let rawFiltered = [];
                 validStudents.forEach(s => {
+                    const studentKey = normalizeIdForMatch(s.id);
                     dates.forEach(d => {
-                        let rec = mutabaahMaster.find(m => m.studentId === s.id && m.date === d);
-                        if(rec) {
+                        const rec = recordByStudentDate.get(`${studentKey}|${normalizeDateOnly(d)}`);
+                        if (rec) {
                             rawFiltered.push({...rec, studentName: s.name, className: s.className, _isEmpty: false});
                         } else {
                             rawFiltered.push({studentId: s.id, studentName: s.name, className: s.className, date: d, _isEmpty: true});
@@ -1429,15 +1524,15 @@
                     });
                 });
 
-                if(fStat !== 'all' && state.tab === 'fardhu') {
+                if (fStat !== 'all' && state.tab === 'fardhu') {
                     if (state.modes.fardhu === 'harian') {
                         let w = document.getElementById('filterWaktuShalat').value;
                         if (w === 'all') {
                             let validStudentIds = new Set();
                             rawFiltered.forEach(r => {
-                                if(!r._isEmpty) {
+                                if (!r._isEmpty) {
                                     FARDHU_KEYS.forEach(k => {
-                                        if(parseFardhu(r.fardhu[k]).status === fStat) validStudentIds.add(r.studentId);
+                                        if (parseFardhu(r.fardhu[k]).status === fStat) validStudentIds.add(r.studentId);
                                     });
                                 }
                             });
@@ -1448,34 +1543,43 @@
                     } else {
                         let validStudentIds = new Set();
                         rawFiltered.forEach(r => {
-                            if(!r._isEmpty) {
+                            if (!r._isEmpty) {
                                 FARDHU_KEYS.forEach(k => {
-                                    if(parseFardhu(r.fardhu[k]).status === fStat) validStudentIds.add(r.studentId);
+                                    if (parseFardhu(r.fardhu[k]).status === fStat) validStudentIds.add(r.studentId);
                                 });
                             }
                         });
                         rawFiltered = rawFiltered.filter(r => validStudentIds.has(r.studentId));
                     }
                 }
-                
-                if(isiStat !== 'all' && state.tab === 'riwayat' && state.modes.riwayat === 'ringkas') {
-                    if(isiStat === 'sudah') rawFiltered = rawFiltered.filter(r => !r._isEmpty);
-                    if(isiStat === 'belum') rawFiltered = rawFiltered.filter(r => r._isEmpty);
+
+                if (isiStat !== 'all' && state.tab === 'riwayat' && state.modes.riwayat === 'ringkas') {
+                    if (isiStat === 'sudah') rawFiltered = rawFiltered.filter(r => !r._isEmpty);
+                    if (isiStat === 'belum') rawFiltered = rawFiltered.filter(r => r._isEmpty);
                 }
 
                 currentFilteredData = rawFiltered;
                 calculateSummary(validStudents.length, dates);
-                
+
                 state.isDataLoaded = true;
-                state.pg.riwayat.page = 1; state.pg.rekap.page = 1; state.pg.fardhu.page = 1;
-                
-                document.getElementById('loading-state').classList.add('hidden');
-                document.getElementById('loading-state').classList.remove('flex');
+                state.pg.riwayat.page = 1;
+                state.pg.rekap.page = 1;
+                state.pg.fardhu.page = 1;
+
                 document.getElementById('cardsOverlay').classList.add('hidden');
-                document.getElementById('tab-contents-container').classList.remove('hidden');
-                
+                tabContents.classList.remove('hidden');
                 updateUI();
-            }, 500);
+            } catch (error) {
+                console.error('Gagal menerapkan filter Rekap Mutabaah:', error);
+                if (window.Swal) await Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Memuat Data',
+                    text: error.message || 'Data tidak dapat ditampilkan.'
+                });
+                else alert(error.message || 'Data tidak dapat ditampilkan.');
+            } finally {
+                hideLoading();
+            }
         }
 
         function calculateSummary(totSiswa, dates) {
