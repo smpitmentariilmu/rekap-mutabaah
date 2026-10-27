@@ -1124,19 +1124,36 @@
             if (value instanceof Date && !Number.isNaN(value.getTime())) {
                 return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;
             }
-            const text = String(value).trim();
-            // Format spreadsheet: dd/MM/yyyy (contoh 28/07/2026), dd-MM-yyyy, yyyy-MM-dd.
+            const text = String(value).replace(/[\u00A0\u200B-\u200D\uFEFF]/g, ' ').trim();
+            // Tanggal ISO (yyyy-MM-dd), termasuk jika diikuti jam.
             let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:$|T|\s)/);
-            if (match) return `${match[1]}-${String(match[2]).padStart(2,'0')}-${String(match[3]).padStart(2,'0')}`;
-            match = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
-            if (match) return `${match[3]}-${String(match[2]).padStart(2,'0')}-${String(match[1]).padStart(2,'0')}`;
+            if (match) {
+                const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
+                const check = new Date(y, m - 1, d);
+                if (check.getFullYear() !== y || check.getMonth() !== m - 1 || check.getDate() !== d) return '';
+                return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            }
+            // Format Indonesia dd/MM/yyyy atau dd-MM-yyyy, dengan opsi jam setelah tanggal.
+            match = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})(?:$|[ T])/);
+            if (match) {
+                const d = Number(match[1]), m = Number(match[2]), y = Number(match[3]);
+                const check = new Date(y, m - 1, d);
+                if (check.getFullYear() !== y || check.getMonth() !== m - 1 || check.getDate() !== d) return '';
+                return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            }
             const date = new Date(text);
             if (Number.isNaN(date.getTime())) return '';
             return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
         }
 
+        // Normalisasi ID untuk pencocokan SISWA.SiswaID dengan MUTABAAH_SISWA.USER_ID.
+        // Membersihkan spasi khusus/karakter tersembunyi tanpa menghapus tanda yang mungkin bagian dari ID.
         function normalizeIdForMatch(value) {
-            return String(value === null || value === undefined ? '' : value).trim().toLowerCase();
+            return String(value === null || value === undefined ? '' : value)
+                .replace(/[\u00A0\u200B-\u200D\uFEFF]/g, '')
+                .trim()
+                .replace(/^'+/, '')
+                .toLowerCase();
         }
 
         function toAppStudent(row) {
@@ -1180,8 +1197,9 @@
                 ma_surat_pagi: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PAGI', 'MA_SURAT_PAGI'], '')),
                 ma_surat_petang: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PETANG', 'MA_SURAT_PETANG'], ''))
             };
-            // Di MUTABAAH_SISWA identitas siswa disimpan pada USER_ID, bukan SiswaID.
-            const studentId = normalizeIdForMatch(valueFromRow(row, ['USER_ID', 'User_ID', 'user_id', 'SiswaID', 'SISWA_ID', 'studentId'], ''));
+            // Kunci relasi: MUTABAAH_SISWA.USER_ID = SISWA.SiswaID.
+            // SiswaID hanya menjadi fallback untuk kompatibilitas jika struktur sheet berubah.
+            const studentId = normalizeIdForMatch(valueFromRow(row, ['USER_ID', 'UserID', 'User_ID', 'user_id', 'User ID', 'SiswaID', 'SISWA_ID', 'studentId'], ''));
             return {
                 id: String(valueFromRow(row, ['MUTABAAH_ID', 'MutabaahID', 'id'], '')).trim(),
                 studentId,
@@ -1240,17 +1258,31 @@
                     endDate: activeEnd
                 });
                 const rawRecords = Array.isArray(recordsResponse.data?.records) ? recordsResponse.data.records : [];
-                const studentIds = new Set(studentsMaster.flatMap(s => (s.matchIds || [s.id, s.userId, s.nis])
-                    .map(normalizeIdForMatch).filter(Boolean)));
+                // Relasi utama hanya USER_ID jurnal -> SiswaID master.
+                // userId/NIS tetap disimpan sebagai fallback untuk data master lama, tetapi bukan kunci utama.
+                const studentIds = new Set(studentsMaster.map(s => normalizeIdForMatch(s.id)).filter(Boolean));
+                const studentFallbackIds = new Set(studentsMaster.flatMap(s => [s.userId, s.nis])
+                    .map(normalizeIdForMatch).filter(Boolean));
                 const mappedRecords = rawRecords.map(toAppRecord);
-                mutabaahMaster = mappedRecords
-                    .filter(r => r.studentId && studentIds.has(normalizeIdForMatch(r.studentId)) && r.date);
-                console.info('[Rekap Mutabaah] Data berhasil dipetakan:', {
-                    totalSiswa: studentsMaster.length,
+                const validIdentityAndDate = mappedRecords.filter(r => r.studentId && r.date);
+                const matchedByStudentId = validIdentityAndDate.filter(r => studentIds.has(normalizeIdForMatch(r.studentId)));
+                const matchedByFallback = validIdentityAndDate.filter(r => studentFallbackIds.has(normalizeIdForMatch(r.studentId)));
+                mutabaahMaster = mappedRecords.filter(r =>
+                    r.studentId && r.date &&
+                    (studentIds.has(normalizeIdForMatch(r.studentId)) || studentFallbackIds.has(normalizeIdForMatch(r.studentId)))
+                );
+                console.info('[Rekap Mutabaah] Diagnostik pencocokan:', {
+                    totalSiswaMaster: studentsMaster.length,
                     totalBarisJurnalDariSheet: rawRecords.length,
-                    totalJurnalDenganUserIdDanTanggalValid: mappedRecords.filter(r => r.studentId && r.date).length,
-                    totalJurnalCocokDenganSiswa: mutabaahMaster.length,
-                    contohKolomJurnal: rawRecords.length ? Object.keys(rawRecords[0]) : []
+                    totalJurnalDenganUserIdDanTanggalValid: validIdentityAndDate.length,
+                    cocokDenganSiswaID: matchedByStudentId.length,
+                    cocokDenganFallbackUserIdAtauNIS: matchedByFallback.length,
+                    totalJurnalDipakaiRekap: mutabaahMaster.length,
+                    jurnalTanpaUserId: mappedRecords.filter(r => !r.studentId).length,
+                    jurnalTanpaTanggalValid: mappedRecords.filter(r => !r.date).length,
+                    contohKolomJurnal: rawRecords.length ? Object.keys(rawRecords[0]) : [],
+                    contohIdMaster: studentsMaster.slice(0, 5).map(s => s.id),
+                    contohUserIdJurnal: mappedRecords.slice(0, 5).map(r => r.studentId)
                 });
                 state.isDataLoaded = true;
                 if (applyAfterLoad) await applyFilters({ skipFetch: true });
