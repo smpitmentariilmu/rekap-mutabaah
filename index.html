@@ -201,7 +201,7 @@
                             <i class="fa-solid fa-file-pdf"></i> <span>PDF</span>
                         </button>
                         <button onclick="openWhatsAppModal()" class="hidden lg:flex w-full sm:w-auto justify-center px-4 md:px-5 py-1.5 md:py-2 bg-mi-primary hover:bg-mi-dark text-white rounded-xl text-xs md:text-sm font-medium transition-colors shadow-md items-center gap-1.5 md:gap-2">
-                            <i class="fa-brands fa-whatsapp text-sm md:text-lg"></i> <span>Bagikan Laporan</span>
+                            <i class="fa-brands fa-whatsapp text-sm md:text-lg"></i> <span>Bagikan</span>
                         </button>
                     </div>
                 </div>
@@ -925,7 +925,7 @@
             <div class="modal-content-box pointer-events-auto w-full lg:w-[90vw] max-w-6xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-mi-border overflow-hidden flex flex-col">
                 <div class="px-4 py-4 border-b border-mi-border flex justify-between items-center bg-white shrink-0">
                     <div>
-                        <h3 class="text-base md:text-lg font-bold text-mi-text1 flex items-center gap-2"><i class="fa-brands fa-whatsapp text-[#25D366] text-xl"></i> Bagikan</h3>
+                        <h3 class="text-base md:text-lg font-bold text-mi-text1 flex items-center gap-2"><i class="fa-brands fa-whatsapp text-[#25D366] text-xl"></i> Bagikan Laporan Mutabaah</h3>
                     </div>
                     <button onclick="closeModal('modalWhatsApp')" class="w-8 h-8 rounded-full bg-mi-bg hover:bg-rose-100 text-mi-text2 flex items-center justify-center"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
@@ -1097,9 +1097,24 @@
             return result;
         }
 
+        function normalizeColumnKey(value) {
+            return String(value === null || value === undefined ? '' : value)
+                .toLowerCase()
+                .replace(/[\s_\-./()]/g, '');
+        }
+
         function valueFromRow(row, keys, fallback = '') {
+            if (!row) return fallback;
             for (const key of keys) {
-                if (row && row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+                if (row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+            }
+            // Fallback: cocokkan nama header tanpa membedakan kapital, spasi, underscore, atau tanda hubung.
+            const wanted = new Set(keys.map(normalizeColumnKey));
+            for (const actualKey of Object.keys(row)) {
+                if (wanted.has(normalizeColumnKey(actualKey)) &&
+                    row[actualKey] !== undefined && row[actualKey] !== null && row[actualKey] !== '') {
+                    return row[actualKey];
+                }
             }
             return fallback;
         }
@@ -1121,18 +1136,21 @@
         }
 
         function normalizeIdForMatch(value) {
-            return String(value === null || value === undefined ? '' : value).trim();
+            return String(value === null || value === undefined ? '' : value).trim().toLowerCase();
         }
 
         function toAppStudent(row) {
-            const id = String(valueFromRow(row, ['SiswaID', 'SISWA_ID', 'StudentID', 'ID'], '')).trim();
+            const id = normalizeIdForMatch(valueFromRow(row, ['SiswaID', 'SISWA_ID', 'StudentID', 'Student_ID', 'ID'], ''));
+            const userId = normalizeIdForMatch(valueFromRow(row, ['USER_ID', 'UserID', 'User_ID', 'user_id', 'User ID', 'UID', 'ID_USER'], ''));
+            const nis = normalizeIdForMatch(valueFromRow(row, ['NIS', 'NISN', 'Nomor Induk Siswa'], ''));
             const name = String(valueFromRow(row, ['Nama Lengkap', 'NamaLengkap', 'Nama Siswa', 'Nama', 'NAMA'], '')).trim();
-            const classId = String(valueFromRow(row, ['ClassID', 'CLASS_ID', 'ID_KELAS'], '')).trim();
-            const cls = masterClasses.find(c => String(c.id) === classId);
+            const classId = normalizeIdForMatch(valueFromRow(row, ['ClassID', 'CLASS_ID', 'ID_KELAS', 'KelasID'], ''));
+            const cls = masterClasses.find(c => normalizeIdForMatch(c.id).toLowerCase() === classId.toLowerCase());
             return {
-                id, name, classId,
-                className: cls ? cls.name : String(valueFromRow(row, ['Nama Kelas', 'Kelas'], '')),
-                status: String(valueFromRow(row, ['Status', 'STATUS'], '')).trim()
+                id, userId, nis, name, classId,
+                matchIds: [...new Set([id, userId, nis].filter(Boolean))],
+                className: cls ? cls.name : String(valueFromRow(row, ['Nama Kelas', 'Kelas', 'ClassName'], '')).trim(),
+                status: String(valueFromRow(row, ['Status', 'STATUS', 'Status Siswa'], '')).trim()
             };
         }
 
@@ -1193,8 +1211,8 @@
                 const masterData = masterResponse.data || {};
                 const rawClasses = Array.isArray(masterData.classes) ? masterData.classes : [];
                 masterClasses = rawClasses.map(c => ({
-                    id: String(valueFromRow(c, ['ClassID', 'classId', 'id'], '')).trim(),
-                    name: String(valueFromRow(c, ['Nama Kelas', 'NamaKelas', 'name'], '')).trim(),
+                    id: normalizeIdForMatch(valueFromRow(c, ['ClassID', 'classId', 'CLASS_ID', 'ID_KELAS', 'id'], '')),
+                    name: String(valueFromRow(c, ['Nama Kelas', 'NamaKelas', 'ClassName', 'Nama', 'name'], '')).trim(),
                     tingkat: valueFromRow(c, ['Tingkat'], ''),
                     status: valueFromRow(c, ['Status'], '')
                 })).filter(c => c.id && c.name);
@@ -1222,7 +1240,8 @@
                     endDate: activeEnd
                 });
                 const rawRecords = Array.isArray(recordsResponse.data?.records) ? recordsResponse.data.records : [];
-                const studentIds = new Set(studentsMaster.map(s => normalizeIdForMatch(s.id)));
+                const studentIds = new Set(studentsMaster.flatMap(s => (s.matchIds || [s.id, s.userId, s.nis])
+                    .map(normalizeIdForMatch).filter(Boolean)));
                 const mappedRecords = rawRecords.map(toAppRecord);
                 mutabaahMaster = mappedRecords
                     .filter(r => r.studentId && studentIds.has(normalizeIdForMatch(r.studentId)) && r.date);
@@ -1507,17 +1526,25 @@
                     const studentKey = normalizeIdForMatch(record.studentId);
                     const dateKey = normalizeDateOnly(record.date);
                     if (studentKey && dateKey) {
-                        recordByStudentDate.set(`${studentKey}|${dateKey}`, record);
+                        const mapKey = `${studentKey}|${dateKey}`;
+                        // Jika ada duplikat untuk siswa/tanggal, utamakan record yang paling baru muncul.
+                        recordByStudentDate.set(mapKey, record);
                     }
                 });
 
                 let rawFiltered = [];
                 validStudents.forEach(s => {
-                    const studentKey = normalizeIdForMatch(s.id);
+                    const studentKeys = (s.matchIds || [s.id, s.userId, s.nis])
+                        .map(normalizeIdForMatch).filter(Boolean);
                     dates.forEach(d => {
-                        const rec = recordByStudentDate.get(`${studentKey}|${normalizeDateOnly(d)}`);
+                        const dateKey = normalizeDateOnly(d);
+                        let rec = null;
+                        for (const studentKey of studentKeys) {
+                            rec = recordByStudentDate.get(`${studentKey}|${dateKey}`);
+                            if (rec) break;
+                        }
                         if (rec) {
-                            rawFiltered.push({...rec, studentName: s.name, className: s.className, _isEmpty: false});
+                            rawFiltered.push({...rec, studentId: s.id || rec.studentId, studentName: s.name, className: s.className, _isEmpty: false});
                         } else {
                             rawFiltered.push({studentId: s.id, studentName: s.name, className: s.className, date: d, _isEmpty: true});
                         }
@@ -1553,7 +1580,7 @@
                     }
                 }
 
-                if (isiStat !== 'all' && state.tab === 'riwayat' && state.modes.riwayat === 'ringkas') {
+                if (isiStat !== 'all' && state.tab === 'riwayat') {
                     if (isiStat === 'sudah') rawFiltered = rawFiltered.filter(r => !r._isEmpty);
                     if (isiStat === 'belum') rawFiltered = rawFiltered.filter(r => r._isEmpty);
                 }
@@ -1785,7 +1812,7 @@
             document.querySelector('.filter-general').style.display = t==='analisa' ? 'none' : 'block';
             document.querySelector('.filter-fardhu-only').style.display = t==='fardhu' ? 'block' : 'none';
             document.querySelector('.filter-fardhu-harian-only').style.display = (t==='fardhu' && state.modes.fardhu==='harian') ? 'block' : 'none';
-            document.querySelector('.filter-status-pengisian-only').style.display = (t==='riwayat' && state.modes.riwayat === 'ringkas') ? 'block' : 'none';
+            document.querySelector('.filter-status-pengisian-only').style.display = t === 'riwayat' ? 'block' : 'none';
 
             if(state.isDataLoaded) updateUI();
         }
@@ -1810,7 +1837,7 @@
                 if (m === 'detail') document.getElementById('legendaRiwayat').classList.replace('hidden', 'flex');
                 else document.getElementById('legendaRiwayat').classList.replace('flex', 'hidden');
                 
-                document.querySelector('.filter-status-pengisian-only').style.display = m === 'ringkas' ? 'block' : 'none';
+                document.querySelector('.filter-status-pengisian-only').style.display = 'block';
             }
             
             if(tab==='fardhu') document.querySelector('.filter-fardhu-harian-only').style.display = m==='harian' ? 'block' : 'none';
@@ -2779,6 +2806,24 @@
 
         window.onload = async function() {
             initFilterUI();
+
+            // Filter Riwayat berubah langsung tanpa mengambil ulang seluruh spreadsheet.
+            const classFilter = document.getElementById('filterKelas');
+            const statusFilter = document.getElementById('filterStatusPengisian');
+            const searchFilter = document.getElementById('filterSearch');
+            let searchFilterTimer = null;
+            const applyLocalHistoryFilter = () => {
+                if (state.isDataLoaded && state.tab === 'riwayat') {
+                    applyFilters({ skipFetch: true });
+                }
+            };
+            if (classFilter) classFilter.addEventListener('change', applyLocalHistoryFilter);
+            if (statusFilter) statusFilter.addEventListener('change', applyLocalHistoryFilter);
+            if (searchFilter) searchFilter.addEventListener('input', () => {
+                clearTimeout(searchFilterTimer);
+                searchFilterTimer = setTimeout(applyLocalHistoryFilter, 220);
+            });
+
             await loadRekapMutabaahData(false);
         };
     </script>
