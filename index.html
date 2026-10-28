@@ -157,12 +157,17 @@
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
                 
                 <div class="flex justify-between items-center w-full lg:w-auto">
-                    <!-- Title/Logo (Kiri) -->
-                    <div class="flex items-center gap-3 md:gap-4 shrink-0">
-                        <img src="https://mentariilmu.org/logo.png" alt="Logo Mentari Ilmu" class="h-10 md:h-12 w-auto object-contain">
-                        <div>
-                            <h1 class="text-lg md:text-xl lg:text-2xl font-bold text-mi-text1 leading-tight">Rekap Mutabaah Siswa</h1>
-                            <p class="text-[11px] md:text-xs lg:text-sm text-mi-text2 mt-0.5 md:mt-1 hidden md:block max-w-sm md:max-w-none">Pantau riwayat pengisian, evaluasi ibadah, analisa data, dan ekspor laporan.</p>
+                    <!-- Title/Logo (Kiri) -->                 
+                   
+                    <div class="flex items-center gap-2 md:gap-3 shrink-0">
+                        <img src="https://mentariilmu.org/logo.png" alt="Logo Mentari Ilmu" class="h-8 md:h-10 w-auto object-contain">
+                        <div class="flex flex-col items-start gap-0">
+                            <span class="text-[10px] md:text-xs font-medium text-mi-text2 leading-[0.85]">Rekap</span>
+                            <div class="flex items-center gap-1.5 -mt-0.5">
+                                <h2 class="text-base md:text-lg lg:text-xl font-extrabold text-mi-primary leading-[0.85] tracking-tight">Mutabaah</h2>
+                                <span class="inline-flex items-center rounded bg-[#E0F2EC] border border-[#B8D9CC] px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold text-[#124F47] leading-none">SISWA</span>
+                            </div>
+                            <p class="text-[8px] md:text-[10px] font-medium text-mi-text2 leading-[0.85] -mt-0.5">SMPIT Mentari Ilmu</p>
                         </div>
                     </div>
 
@@ -258,7 +263,7 @@
                     </select>
                 </div>
 
-                <!-- Filter Khusus Status Pengisian (Muncul hanya di Riwayat Ringkas) -->
+                <!-- Filter Status Pengisian ditampilkan di semua tab utama -->
                 <div class="sm:col-span-1 lg:col-span-1 filter-status-pengisian-only">
                     <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider">Status Pengisian</label>
                     <select id="filterStatusPengisian" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
@@ -268,7 +273,7 @@
                     </select>
                 </div>
 
-                <!-- Filter Khusus Shalat Fardhu -->
+                <!-- Filter khusus Shalat Fardhu -->
                 <div class="sm:col-span-1 lg:col-span-1 filter-fardhu-only" style="display: none;">
                     <label class="block text-[10px] md:text-xs font-semibold text-mi-text2 mb-1 md:mb-1.5 uppercase tracking-wider" title="Menyaring siswa yang memiliki status ini pada waktu shalat terpilih.">Jawaban Shalat</label>
                     <select id="filterStatusShalat" class="w-full border border-mi-border rounded-xl bg-mi-bg focus:bg-white py-2 md:py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-mi-primary/20 focus:border-mi-primary text-xs md:text-sm transition-all text-mi-text1">
@@ -1197,13 +1202,13 @@
                 ma_surat_pagi: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PAGI', 'MA_SURAT_PAGI'], '')),
                 ma_surat_petang: normalizeActivityValue(valueFromRow(row, ['AL_MATSURAT_PETANG', 'MA_SURAT_PETANG'], ''))
             };
-            // Kunci relasi: MUTABAAH_SISWA.USER_ID = SISWA.SiswaID.
-            // SiswaID hanya menjadi fallback untuk kompatibilitas jika struktur sheet berubah.
-            const studentId = normalizeIdForMatch(valueFromRow(row, ['USER_ID', 'UserID', 'User_ID', 'user_id', 'User ID', 'SiswaID', 'SISWA_ID', 'studentId'], ''));
+            // Skema terbaru memakai SiswaID sebagai kunci utama.
+            // USER_ID hanya fallback untuk kompatibilitas data lama.
+            const studentId = normalizeIdForMatch(valueFromRow(row, ['SiswaID', 'SISWA_ID', 'StudentID', 'USER_ID', 'UserID', 'User_ID', 'user_id', 'User ID', 'studentId'], ''));
             return {
                 id: String(valueFromRow(row, ['MUTABAAH_ID', 'MutabaahID', 'id'], '')).trim(),
                 studentId,
-                classId: String(valueFromRow(row, ['ID_KELAS', 'ClassID', 'CLASS_ID'], '')).trim(),
+                classId: String(valueFromRow(row, ['ClassID', 'CLASS_ID', 'ID_KELAS', 'KelasID'], '')).trim(),
                 date: normalizeDateOnly(valueFromRow(row, ['TANGGAL', 'Tanggal', 'tanggal', 'date'], '')),
                 fardhu, disiplin, sunnah,
                 // Sheet saat ini tidak menyediakan kolom terpisah yang setara dengan aktivitas UI ini.
@@ -1612,13 +1617,13 @@
                     }
                 }
 
-                if (isiStat !== 'all' && state.tab === 'riwayat') {
+                if (isiStat !== 'all') {
                     if (isiStat === 'sudah') rawFiltered = rawFiltered.filter(r => !r._isEmpty);
                     if (isiStat === 'belum') rawFiltered = rawFiltered.filter(r => r._isEmpty);
                 }
 
                 currentFilteredData = rawFiltered;
-                calculateSummary(validStudents.length, dates);
+                calculateSummary(validStudents.length, dates, validStudents, cls);
 
                 state.isDataLoaded = true;
                 state.pg.riwayat.page = 1;
@@ -1641,7 +1646,7 @@
             }
         }
 
-        function calculateSummary(totSiswa, dates) {
+        function calculateSummary(totSiswa, dates, studentsForSummary = [], selectedClass = 'all') {
             let totHari = dates.length;
             let totExpected = totSiswa * totHari;
             
@@ -1649,6 +1654,23 @@
             let stuMap = {};
             let classMap = {};
             unrecordedFardhu = [];
+
+            // Inisialisasi dari MASTER.CLASSES, bukan dari jurnal yang sudah ada.
+            // Kelas yang belum memiliki jurnal tetap tampil di Monitoring Pengisian Mutabaah Kelas.
+            masterClasses
+                .filter(c => selectedClass === 'all' || c.name === selectedClass)
+                .forEach(c => {
+                    classMap[c.name] = { siswa: new Set(), terisi: 0, expected: 0, classId: c.id };
+                });
+
+            // Daftarkan siswa master terlebih dahulu; status ditentukan dari jurnal per tanggal.
+            (studentsForSummary || []).forEach(s => {
+                const className = s.className || 'Kelas belum dipetakan';
+                if (!classMap[className]) {
+                    classMap[className] = { siswa: new Set(), terisi: 0, expected: 0, classId: s.classId || '' };
+                }
+                classMap[className].siswa.add(s.id);
+            });
 
             currentFilteredData.forEach(r => {
                 if(!stuMap[r.studentId]) {
@@ -1734,10 +1756,9 @@
                 let isi = cm.terisi;
                 let missing = expected - isi;
                 let pct = expected > 0 ? (isi / expected) * 100 : 0;
-                let status = pct === 100 ? 'Lengkap' : 'Belum Lengkap';
-                
+                let status = expected === 0 ? 'Tidak Ada Siswa' : (pct === 100 ? 'Lengkap' : 'Belum Lengkap');
                 if (status === 'Lengkap') completeClasses++;
-                else incompleteClasses++;
+                else if (status === 'Belum Lengkap') incompleteClasses++;
                 totalMissingDays += missing;
 
                 let bdiStudents = [];
@@ -1770,21 +1791,34 @@
             };
 
             const recapSiswaArr = Object.values(stuMap).map(s => {
-                let totChance = 0; let totDone = 0; let totHaid = 0;
+                let totChance = 0;
+                let totDone = 0;
+                let totHaid = 0;
+
                 FARDHU_KEYS.forEach(k => {
-                    let st = s.fardhuTimes[k];
-                    let chance = st.bj + st.mn + st.tidak;
-                    let done = st.bj + st.mn;
-                    totChance += chance;
-                    totDone += done;
-                    totHaid += st.haid;
+                    const st = s.fardhuTimes[k];
+
+                    // Setiap waktu shalat memiliki satu kesempatan per hari.
+                    // Haid mengurangi kesempatan untuk waktu shalat tersebut saja.
+                    // Contoh: 1 hari + Dzuhur haid => kesempatan Dzuhur 0, bukan 1.
+                    const haidCount = Number(st.haid || 0);
+                    const chance = Math.max(0, totHari - haidCount);
+                    const done = Number(st.bj || 0) + Number(st.mn || 0);
+
                     st.chance = chance;
                     st.done = done;
+                    totChance += chance;
+                    totDone += done;
+                    totHaid += haidCount;
                 });
-                s.totChance = totChance;
+
+                // Total kesempatan = 5 waktu x jumlah hari, dikurangi seluruh catatan haid.
+                s.totChance = Math.max(0, (totHari * FARDHU_KEYS.length) - totHaid);
                 s.totDone = totDone;
                 s.totHaid = totHaid;
-                s.pctFardhu = totChance > 0 ? (totDone / totChance) * 100 : (totHaid > 0 ? -1 : 0);
+                s.pctFardhu = s.totChance > 0
+                    ? (totDone / s.totChance) * 100
+                    : (totHaid > 0 ? -1 : 0);
                 s.predFardhu = getPred(s.pctFardhu);
                 return s;
             });
@@ -1814,7 +1848,15 @@
         // UI & RENDERERS
         // ============================================================
         function switchTab(t) {
+            const previousTab = state.tab;
             state.tab = t;
+
+            // Setiap berpindah tab utama, reset Status Pengisian ke Semua Status.
+            // Filter lain seperti nama, kelas, dan periode tetap dipertahankan.
+            if (previousTab !== t) {
+                const statusPengisianFilter = document.getElementById('filterStatusPengisian');
+                if (statusPengisianFilter) statusPengisianFilter.value = 'all';
+            }
             closeAllMobileMenus();
             
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1841,12 +1883,17 @@
             cEl.classList.remove('hidden');
             if(t==='analisa') cEl.classList.add('block'); else cEl.classList.add('flex');
 
-            document.querySelector('.filter-general').style.display = t==='analisa' ? 'none' : 'block';
+            // Cari Nama selalu tersedia di semua tab utama.
+            document.querySelector('.filter-general').style.display = 'block';
             document.querySelector('.filter-fardhu-only').style.display = t==='fardhu' ? 'block' : 'none';
             document.querySelector('.filter-fardhu-harian-only').style.display = (t==='fardhu' && state.modes.fardhu==='harian') ? 'block' : 'none';
-            document.querySelector('.filter-status-pengisian-only').style.display = t === 'riwayat' ? 'block' : 'none';
+            // Status Pengisian selalu tersedia di semua tab utama.
+            document.querySelector('.filter-status-pengisian-only').style.display = 'block';
 
-            if(state.isDataLoaded) updateUI();
+            if (state.isDataLoaded) {
+                // Terapkan ulang filter lokal dari data yang sudah dimuat; tidak fetch ke server.
+                applyFilters({ skipFetch: true });
+            }
         }
 
         function setMode(tab, m) {
@@ -1875,10 +1922,10 @@
             if(tab==='fardhu') document.querySelector('.filter-fardhu-harian-only').style.display = m==='harian' ? 'block' : 'none';
             
             state.pg[tab].page = 1;
-            if(state.isDataLoaded) {
-                if(tab==='fardhu' && (m === 'harian' || m === 'ringkas')) applyFilters(); 
-                else updateUI();
-            }
+
+            // Perpindahan sub-tab hanya merender ulang data yang sudah dimuat.
+            // Pengambilan data dari server hanya dilakukan melalui tombol Tampilkan/Refresh.
+            if (state.isDataLoaded) updateUI();
         }
 
         function updateUI() {
@@ -2233,9 +2280,11 @@
                 const tr = document.createElement('tr');
                 tr.className = 'bg-white hover:bg-mi-soft/50 transition-colors';
                 
-                let badge = row.status === 'Lengkap' 
-                    ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700">Lengkap</span>` 
-                    : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700">Belum Lengkap</span>`;
+                let badge = row.status === 'Lengkap'
+                    ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700">Lengkap</span>`
+                    : row.status === 'Tidak Ada Siswa'
+                        ? `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500">Tidak Ada Siswa</span>`
+                        : `<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700">Belum Lengkap</span>`;
                 
                 let bdiContent = row.uniqueBdiCount > 0
                     ? `<button onclick="showClassCompletenessDetail('${row.className}')" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors" title="Lihat Siswa BDI">${row.uniqueBdiCount} Siswa</button>`
@@ -2845,7 +2894,8 @@
             const searchFilter = document.getElementById('filterSearch');
             let searchFilterTimer = null;
             const applyLocalHistoryFilter = () => {
-                if (state.isDataLoaded && state.tab === 'riwayat') {
+                // Filter kelas, status pengisian, dan cari nama bekerja di semua tab utama.
+                if (state.isDataLoaded) {
                     applyFilters({ skipFetch: true });
                 }
             };
