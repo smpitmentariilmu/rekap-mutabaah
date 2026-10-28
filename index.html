@@ -153,14 +153,14 @@
 
     <!-- HEADER -->
     <div class="bg-mi-surface border-b border-mi-border sticky top-0 z-30 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-8 py-2 sm:py-2.5 md:py-3 lg:py-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 sm:gap-2.5 lg:gap-4">
                 
                 <div class="flex justify-between items-center w-full lg:w-auto">
                     <!-- Title/Logo (Kiri) -->                 
                    
                     <div class="flex items-center gap-2 md:gap-3 shrink-0">
-                        <img src="https://mentariilmu.org/logo.png" alt="Logo Mentari Ilmu" class="h-8 md:h-10 w-auto object-contain">
+                        <img src="https://mentariilmu.org/logo.png" alt="Logo Mentari Ilmu" class="h-7 sm:h-8 md:h-9 lg:h-10 w-auto object-contain">
                         <div class="flex flex-col items-start gap-0">
                             <span class="text-[10px] md:text-xs font-medium text-mi-text2 leading-[0.85]">Rekap</span>
                             <div class="flex items-center gap-1.5 -mt-0.5">
@@ -172,7 +172,7 @@
                     </div>
 
                     <!-- Live Clock (Kanan khusus Mobile/Tablet) -->
-                    <div class="flex lg:hidden items-center gap-2 px-2.5 py-1.5 bg-gradient-to-r from-[#F0F7F5] to-white border border-[#D7EAE5] rounded-xl shadow-sm shrink-0 ml-2">
+                    <div class="flex lg:hidden items-center gap-2 px-2.5 py-1 bg-gradient-to-r from-[#F0F7F5] to-white border border-[#D7EAE5] rounded-xl shadow-sm shrink-0 ml-2">
                         <div class="flex flex-col text-right">
                             <span class="live-time text-xs sm:text-sm font-black text-mi-primary leading-none tracking-tight font-mono">00:00:00</span>
                             <span class="live-date text-[9px] sm:text-[10px] font-semibold text-mi-text2 mt-0.5">Memuat...</span>
@@ -182,9 +182,6 @@
                         </div>
                     </div>
                 </div>
-
-                <p class="text-[11px] md:hidden text-mi-text2 mb-1 px-1">Pantau riwayat pengisian, evaluasi ibadah, analisa data, dan ekspor laporan.</p>
-
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between lg:justify-end gap-3 md:gap-4">
                     
                     <!-- Live Clock (Desktop) -->
@@ -540,14 +537,29 @@
 
                 <!-- TAB 3: ANALISA DATA -->
                 <div id="content-analisa" class="p-4 md:p-6 hidden min-h-[400px]">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-                        <div class="bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm">
-                            <h3 class="text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-4 md:mb-6 text-center">Distribusi Shalat Fardhu</h3>
-                            <div class="relative h-48 md:h-64 w-full flex justify-center">
-                                <canvas id="chartDistribusi"></canvas>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8 items-stretch">
+                        <!-- Kolom kiri: dua kartu asli ditumpuk tanpa mengubah desain Total per Jenjang -->
+                        <div class="lg:col-span-1 flex flex-col gap-4 md:gap-6 h-full min-h-0">
+                            <div class="bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-5 shadow-sm flex flex-col flex-1 min-h-[300px] lg:min-h-0">
+                                <h3 class="text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-4 md:mb-6 text-center">Distribusi Shalat Fardhu</h3>
+                                <div class="relative h-48 md:h-64 lg:flex-1 lg:min-h-[180px] w-full flex justify-center">
+                                    <canvas id="chartDistribusi"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-white border border-mi-border rounded-2xl p-3 md:p-4 shadow-sm flex flex-col flex-1 min-h-[220px] lg:min-h-0">
+                                <div class="flex items-center justify-between gap-2 mb-3">
+                                    <div>
+                                        <h3 class="text-xs font-extrabold text-mi-text1 uppercase tracking-wide">Total per Jenjang</h3>
+                                        <p class="text-[10px] text-mi-text2 mt-0.5">Status pengisian siswa</p>
+                                    </div>
+                                    <span class="w-8 h-8 rounded-xl bg-mi-soft text-mi-primary flex items-center justify-center"><i class="fa-solid fa-graduation-cap"></i></span>
+                                </div>
+                                <div id="jenjangSummaryCards" class="space-y-2.5 flex-1">
+                                    <div class="text-xs text-mi-text2 text-center py-8">Data akan tampil setelah filter diterapkan.</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="lg:col-span-2 bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm flex flex-col overflow-hidden">
+                        <div class="lg:col-span-2 bg-mi-surface border border-mi-border rounded-2xl p-4 md:p-6 shadow-sm flex flex-col overflow-hidden min-h-0">
                             <h3 class="text-xs md:text-sm font-bold text-mi-text1 uppercase tracking-wide mb-4 md:mb-6" id="titleAnalisaKelas">Persentase Pengisian per Kelas</h3>
                             <div class="relative h-48 md:h-64 w-full mb-4 md:mb-6">
                                 <canvas id="chartKelas"></canvas>
@@ -2204,6 +2216,55 @@
             const tbodyAnalisaKelas = document.getElementById('tbody-analisa-kelas');
             if (tbodyAnalisaKelas) {
                 tbodyAnalisaKelas.innerHTML = clsBody;
+            }
+
+            // Ringkasan total per jenjang (kelas 7, 8, dan 9), mengikuti filter kelas/periode aktif.
+            const jenjangEl = document.getElementById('jenjangSummaryCards');
+            if (jenjangEl) {
+                const jenjangMap = {
+                    '7': { total: new Set(), sudah: new Set() },
+                    '8': { total: new Set(), sudah: new Set() },
+                    '9': { total: new Set(), sudah: new Set() }
+                };
+                const getJenjang = (className) => {
+                    const master = masterClasses.find(c => c.name === className);
+                    const raw = String(master?.tingkat ?? '').trim();
+                    const match = raw.match(/[789]/);
+                    if (match) return match[0];
+                    const nameMatch = String(className || '').match(/^\s*(?:kelas\s*)?([789])(?:\D|$)/i);
+                    return nameMatch ? nameMatch[1] : '';
+                };
+                Object.keys(currentSummary.rekapKelas || {}).forEach(className => {
+                    const level = getJenjang(className);
+                    if (!jenjangMap[level]) return;
+                    (currentSummary.rekapKelas[className].siswa || new Set()).forEach(id => jenjangMap[level].total.add(String(id)));
+                });
+                (currentSummary.recapSiswa || []).forEach(student => {
+                    const level = getJenjang(student.cls);
+                    if (jenjangMap[level] && Number(student.terisi || 0) > 0) jenjangMap[level].sudah.add(String(student.id));
+                });
+                const palettes = {
+                    '7': { bg: '#EEF2FF', text: '#4F46E5', bar: '#6366F1' },
+                    '8': { bg: '#ECFDF5', text: '#047857', bar: '#10B981' },
+                    '9': { bg: '#F5F3FF', text: '#7C3AED', bar: '#8B5CF6' }
+                };
+                jenjangEl.innerHTML = ['7','8','9'].map(level => {
+                    const data = jenjangMap[level];
+                    const total = data.total.size;
+                    const sudah = Math.min(data.sudah.size, total);
+                    const belum = Math.max(0, total - sudah);
+                    const pct = total ? Math.round(sudah / total * 100) : 0;
+                    const color = palettes[level];
+                    return `<div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <div class="flex items-center gap-2 min-w-0"><span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-extrabold shrink-0" style="background:${color.bg};color:${color.text}">${level}</span><span class="text-xs font-extrabold text-mi-text1">Tingkat ${level}</span></div>
+                            <span class="text-[10px] font-semibold text-slate-500 whitespace-nowrap">${total.toLocaleString('id-ID')} siswa</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-bold mb-1.5"><span class="text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i>${sudah} Sudah</span><span class="text-rose-600"><i class="fa-solid fa-circle-xmark mr-1"></i>${belum} Belum</span></div>
+                        <div class="h-2 rounded-full bg-rose-200 overflow-hidden"><div class="h-full rounded-full transition-all duration-500" style="width:${pct}%;background:${color.bar}"></div></div>
+                        <div class="text-right text-[9px] font-semibold text-slate-400 mt-1">${pct}% tuntas</div>
+                    </div>`;
+                }).join('');
             }
 
             if(state.charts.kelas) state.charts.kelas.destroy();
