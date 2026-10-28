@@ -2757,7 +2757,9 @@
 
                     if (showRekap) {
                         text += `━━━━━━━━━━━━━━━━━━\n📚 *REKAP PER KELAS*\n━━━━━━━━━━━━━━━━━━\n\n`;
-                        let classesToProcess = selectedClass === 'all' ? CLASS_LIST : [selectedClass];
+                        let classesToProcess = selectedClass === 'all'
+                            ? Object.keys(cr.rekapKelas || {}).sort((a, b) => a.localeCompare(b, 'id'))
+                            : [selectedClass];
                         let hasData = false;
                         classesToProcess.forEach(c => {
                             if (cr.rekapKelas && cr.rekapKelas[c]) {
